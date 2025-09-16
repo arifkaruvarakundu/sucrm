@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers.data_upload import router as data_upload_router
+from app.routers.dashboard import router as dashboard_data_router
 
 app = FastAPI()
 
@@ -21,6 +23,10 @@ app.add_middleware(
     allow_methods=["*"],              # allow all HTTP methods
     allow_headers=["*"],              # allow all headers
 )
+
+# Mount routers
+app.include_router(data_upload_router)
+app.include_router(dashboard_data_router)
 
 
 

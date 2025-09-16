@@ -4,16 +4,17 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 import pandas as pd
+from io import BytesIO
 
 router = APIRouter()
 
 @router.post("/upload-file/")
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    
     # Read raw file bytes (for safe storage)
     raw_bytes = await file.read()
 
     # Reset pointer for pandas
-    from io import BytesIO
     buffer = BytesIO(raw_bytes)
 
     # Parse with pandas
@@ -25,6 +26,8 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     # Clean / normalize
     df = df.dropna(how="all")  
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+    # Ensure JSON-safe values (Postgres JSON doesn't allow NaN/NaT)
+    df = df.where(pd.notnull(df), None)
 
     # Create UploadedFile entry
     uploaded = models.UploadedFile(

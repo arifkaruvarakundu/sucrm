@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from crm_backend.models import Base 
+from app.models import Base 
 
 # 👇 Explicitly load from parent directory where .env is located
 env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
@@ -18,8 +18,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 🚀 THIS creates the tables if they don't exist
-# Base.metadata.create_all(bind=engine)
+# 🚀 Create tables if they don't exist (for simple setups; prefer Alembic in prod)
+Base.metadata.create_all(bind=engine)
 
 # ✅ Add this missing function
 def get_db():

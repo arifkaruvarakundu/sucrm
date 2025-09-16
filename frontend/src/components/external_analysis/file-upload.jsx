@@ -12,6 +12,37 @@ export default function FileUpload() {
   const [files, setFiles] = useState([])
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // add a new state
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const processFiles = (fileList) => {
+    const newFiles = fileList.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      status: "uploading",
+      progress: 0,
+      file, // keep the actual file object
+    }));
+  
+    setFiles((prev) => [...prev, ...newFiles]);
+    setSelectedFile(fileList[0] || null);
+  
+    // Simulate file processing
+    newFiles.forEach((_, index) => {
+      simulateFileProcessing(files.length + index);
+    });
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) return;
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    const res = await fetch("http://127.0.0.1:8000/upload-file/", { method: "POST", body: formData });
+    if (!res.ok) { console.error("Upload failed"); return; }
+    console.log("Uploaded:", await res.json());
+  };
+
   const handleDragOver = useCallback((e) => {
 
     e.preventDefault()
@@ -42,23 +73,7 @@ export default function FileUpload() {
 
   }, [])
 
-  const processFiles = (fileList) => {
-
-    const newFiles = fileList.map((file) => ({
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      status: "uploading",
-      progress: 0,
-    }))
-
-    setFiles((prev) => [...prev, ...newFiles])
-
-    // Simulate file processing
-    newFiles.forEach((_, index) => {
-      simulateFileProcessing(files.length + index)
-    })
-  }
+  
 
   const simulateFileProcessing = (fileIndex) => {
     const interval = setInterval(() => {
@@ -194,6 +209,15 @@ export default function FileUpload() {
                       />
                     </div>
                   )}
+                  <div className="pt-2">
+  <Button
+    onClick={handleAnalyze}
+    disabled={!selectedFile}
+    className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600"
+  >
+    Analyse Data
+  </Button>
+</div>
                 </div>
               </div>
             ))}
