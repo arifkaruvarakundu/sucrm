@@ -10,29 +10,33 @@ import { useTranslation } from 'react-i18next';
 const TopSellingProductsChartInbetween = () => {
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
-  const [endDate, setEndDate] = useState(new Date());
+  const [startDate, setStartDate] = useState();
+  const [endDate, setEndDate] = useState();
 
   const { t } = useTranslation("productAnalysis");
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/top-products-inbetween`, {
+      const res = await axios.get(`${API_BASE_URL}/product-analysis/top-products-by-date`, {
         params: {
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          // Send just YYYY-MM-DD to avoid timezone mismatch issues
+          start_date: startDate.toISOString().split("T")[0],
+          end_date: endDate.toISOString().split("T")[0],
         },
       });
-
-      const names = res.data.map((p) => p.name);
-      const sales = res.data.map((p) => p.total_quantity_sold);
-
+  
+      // Backend returns { product_column, amount_column, rows: [...] }
+      const rows = res.data.rows || [];
+  
+      const names = rows.map((p) => p.product);
+      const sales = rows.map((p) => p.total_amount || 0); // use 0 if null
+  
       setCategories(names);
       setSeries([{ name: "Sales", data: sales }]);
     } catch (err) {
       console.error("Failed to fetch top products:", err);
     }
-  };
+  };  
 
   useEffect(() => {
     fetchData();

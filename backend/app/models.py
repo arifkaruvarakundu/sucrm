@@ -16,7 +16,11 @@ class UploadedFile(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
 
     # raw file storage (optional: can also store just a path)
-    file_data = Column(LargeBinary, nullable=False)  
+    file_data = Column(LargeBinary, nullable=False)
+    
+    # Cloudinary storage fields
+    cloudinary_url = Column(String, nullable=True)
+    cloudinary_public_id = Column(String, nullable=True)
 
     # relationships
     rows = relationship("FileRow", back_populates="file", cascade="all, delete-orphan")

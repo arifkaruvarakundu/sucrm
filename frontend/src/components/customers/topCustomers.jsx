@@ -10,9 +10,16 @@ const TopCustomersChart = () => {
   const { t } = useTranslation("customerAnalysis");
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/top-customers`).then((res) => {
-      const names = res.data.map((c) => c.user);
-      const totalSpent = res.data.map((c) => c.total_spending);
+    axios.get(`${API_BASE_URL}/dashboard/top-customers`).then((res) => {
+      const rows = Array.isArray(res.data.rows) ? res.data.rows : [];
+      
+      //sort by total_amount descending and take top 5
+      const top5 = rows
+        .sort((a,b) => (b.total_amount ?? 0) - (a.total_amount ?? 0))
+        .slice(0, 5);
+
+      const names = top5.map((c) => c.customer);
+      const totalSpent = top5.map((c) => c.total_amount);
 
       setCategories(names);
       setSeries([

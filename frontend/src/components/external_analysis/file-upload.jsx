@@ -6,6 +6,7 @@ import  CardTitle from "../ui/cardTitle"
 import  Button  from "../ui/Button"
 import { Upload, FileSpreadsheet, X, CheckCircle } from "lucide-react"
 import { cn } from "../../lib/utils"
+import { useNavigate } from "react-router-dom"
 
 export default function FileUpload() {
     
@@ -14,6 +15,8 @@ export default function FileUpload() {
 
   // add a new state
   const [selectedFile, setSelectedFile] = useState(null);
+
+  const navigate = useNavigate()
 
   const processFiles = (fileList) => {
     const newFiles = fileList.map((file) => ({
@@ -41,6 +44,7 @@ export default function FileUpload() {
     const res = await fetch("http://127.0.0.1:8000/upload-file/", { method: "POST", body: formData });
     if (!res.ok) { console.error("Upload failed"); return; }
     console.log("Uploaded:", await res.json());
+    navigate("dashboard")
   };
 
   const handleDragOver = useCallback((e) => {

@@ -2,8 +2,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.data_upload import router as data_upload_router
 from app.routers.dashboard import router as dashboard_data_router
+from app.routers.customer_analysis import router as customer_analysis_router
+from app.routers.product_analysis import router as product_analysis_router
+import cloudinary
+from dotenv import load_dotenv
+import os
 
-app = FastAPI()
+load_dotenv()
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
+
+app = FastAPI(debug=True)
 
 # CORS configuration
 origins = [
@@ -27,8 +41,8 @@ app.add_middleware(
 # Mount routers
 app.include_router(data_upload_router)
 app.include_router(dashboard_data_router)
-
-
+app.include_router(customer_analysis_router)
+app.include_router(product_analysis_router)
 
 @app.get("/")
 def read_root():

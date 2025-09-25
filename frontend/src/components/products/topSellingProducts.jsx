@@ -11,17 +11,21 @@ const TopSellingProductsChart = () => {
   const { t } = useTranslation("productAnalysis");
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/top-selling-products`).then((res) => {
-      const names = res.data.map((p) => p.name);
-      const sales = res.data.map((p) => p.total_quantity_sold || p.total_sales);
+    axios.get(`${API_BASE_URL}/product-analysis/top-products`).then((res) => {
+      const rows = Array.isArray(res.data?.rows) ? res.data.rows : [];
+      const names = rows.map((r) => r.product);
+      const values = rows.map((r) => (r.total_amount != null ? Number(r.total_amount) : Number(r.orders || 0)));
 
       setCategories(names);
       setSeries([
         {
-          name: "Sales",
-          data: sales,
+          name: res.data?.amount_column ? "Total Amount" : "Orders",
+          data: values,
         },
       ]);
+    }).catch(() => {
+      setCategories([]);
+      setSeries([]);
     });
   }, []);
 
@@ -42,3 +46,4 @@ const TopSellingProductsChart = () => {
 };
 
 export default TopSellingProductsChart;
+

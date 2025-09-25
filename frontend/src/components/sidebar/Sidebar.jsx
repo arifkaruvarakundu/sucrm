@@ -33,7 +33,8 @@ const Sidebar = () => {
     return (
         <div className='sidebar'>
             <div className="sidebar__logo">
-                <img src={logo} alt="company logo" /> {t("appName")}
+                {/* <img src={logo} alt="company logo" />  */}
+                {t("appName")}
             </div>
             <div className="sidebar__menu">
                 {

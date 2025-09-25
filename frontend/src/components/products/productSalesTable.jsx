@@ -9,23 +9,25 @@ import { useTranslation } from 'react-i18next';
 
 const ProductSalesTable = () => {
   const [products, setProducts] = useState([])
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)))
-  const [endDate, setEndDate] = useState(new Date())
+  const [startDate, setStartDate] = useState()
+  const [endDate, setEndDate] = useState()
   const [grandTotal, setGrandTotal] = useState(0);
+  const [columns, setColumns] = useState({})
+
 
   const navigate = useNavigate()
   const { t } = useTranslation("productAnalysis");
 
   const fetchSales = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/products-sales-table`, {
+      const res = await axios.get(`${API_BASE_URL}/product-analysis/products-sales-table`, {
         params: {
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString()
         }
       })
-     
-      setProducts(res.data)
+      setColumns(res.data.columns)
+      setProducts(res.data.rows)
       // ✅ Calculate grand total here
       const total = res.data.reduce((sum, item) => sum + (item.price * item.total_sales), 0);
       setGrandTotal(total);
@@ -38,9 +40,10 @@ const ProductSalesTable = () => {
     fetchSales()
   }, [startDate, endDate])
 
-  const headData = ['id', 'name', 'category', 'price', 'total_quantity', 'total_amount']
+  const headData = ['id', columns.product_column, columns.category_column, columns.price_column, columns.quantity_column]
 
   const renderHead = (item, index) => <th key={index}>{t(item)}</th>
+
 
   const renderBody = (item, index) => (
     <tr key={index} onClick={() => navigate(`/product-sales/${item.id}`, {

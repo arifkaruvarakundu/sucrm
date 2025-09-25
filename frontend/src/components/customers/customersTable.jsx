@@ -6,26 +6,41 @@ import API_BASE_URL from '../../../api_config';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const CustomersTable = ({customers}) => {
+const CustomersTable = ({customers, columns = []}) => {
     const [topCustomers, setTopCustomers] = useState([]);
 
     const navigate = useNavigate();
     const { t } = useTranslation("customerAnalysis");
 
-    const topCustomerHead = ["user", "total_orders", "total_spending", "phone"];
+    const hasCivilId = columns.includes("civil_id");
+    const topCustomerHead = columns.length
+        ? [...columns, ...(hasCivilId ? ["dob"] : [])]
+        : ["name", "phone", "city", "email"]; // fallback
+
+    const parseDobFromCivilId = (civil) => {
+        if (!civil) return "";
+        const digits = String(civil).replace(/\D/g, "");
+        if (digits.length < 7) return "";
+        const firstSeven = digits.slice(0, 7);
+        const yy = firstSeven.slice(1, 3);
+        const mm = firstSeven.slice(3, 5);
+        const dd = firstSeven.slice(5, 7);
+        if (!yy || !mm || !dd) return "";
+        return `${yy}/${mm}/${dd}`;
+    };
 
     const renderCustomerHead = (item, index) => <th key={index}>{t(item)}</th>;
 
     const renderCustomerBody = (item, index) => (
         <tr 
-            key={index} 
-            onClick={() => navigate(`/customer-details/${item.id}`)} 
-            style={{ cursor: 'pointer' }}
+            key={index}
+            style={{ cursor: 'default' }}
         >
-            <td>{item.user}</td>
-            <td>{item.total_orders}</td>
-            <td>{item.total_spending}</td>
-            <td>{item.phone}</td>
+            {topCustomerHead.map((col, i) => (
+                <td key={i}>{
+                    col === 'dob' ? parseDobFromCivilId(item?.civil_id) : (item?.[col] ?? '')
+                }</td>
+            ))}
         </tr>
     );
 
@@ -50,7 +65,7 @@ const CustomersTable = ({customers}) => {
                 </div>
                 <div className="card__body">
                     <Table
-                        limit="10"
+                        limit = "10"
                         headData={topCustomerHead}
                         renderHead={renderCustomerHead}
                         bodyData={customers}

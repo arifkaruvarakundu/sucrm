@@ -6,11 +6,12 @@ import CustomerSpendingClassificationTables from "../components/customers/Custom
 import LowChurnCustomers from "../components/customers/CustomersWithLowChurnRisk";
 import API_BASE_URL from "../../api_config";
 import axios from "axios";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'; 
 
 function CustomerAnalysis() {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [columns, setColumns] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filters use `null` for "not set"
@@ -23,9 +24,12 @@ function CustomerAnalysis() {
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const res = await axios.get(`${API_BASE_URL}/customers-table`);
-        setCustomers(res.data);
-        setFilteredCustomers(res.data);
+        const res = await axios.get(`${API_BASE_URL}/customer-analysis/customers-table`);
+        const list = Array.isArray(res.data?.customers) ? res.data.customers : [];
+        const cols = Array.isArray(res.data?.columns) ? res.data.columns : (list[0] ? Object.keys(list[0]) : []);
+        setCustomers(list);
+        setFilteredCustomers(list);
+        setColumns(cols);
 
       } catch (err) {
         console.error("Error fetching customers", err);
@@ -39,28 +43,41 @@ function CustomerAnalysis() {
   const rawSearch = searchTerm.trim().toLowerCase();
   const digitSearch = rawSearch.replace(/\D/g, '');
 
-  const filtered = customers.filter((customer) => {
-    const name = (customer.user || '').toLowerCase();
-    const phone = (customer.phone || '').replace(/\D/g, '');
-    const orders = Number(customer.total_orders ?? 0); // make sure API has this field
-    const spending = Number(customer.total_spending ?? 0); // adjust key based on your API
+  const filtered = (Array.isArray(customers) ? customers : [])
+    // Ensure basic shape (name/phone optional-safe, but keep rows even if one missing)
+    .filter((c) => typeof c === 'object' && c !== null)
+    .filter((customer) => {
+    // Generic text search across all string-like fields
+    const textMatch = Object.values(customer || {})
+      .filter((v) => typeof v === 'string')
+      .some((v) => v.toLowerCase().includes(rawSearch));
 
-    const isNameMatch = name.includes(rawSearch);
-    const isPhoneMatch = digitSearch && phone.includes(digitSearch);
-    const passesSearch = 
-        !rawSearch || isNameMatch || isPhoneMatch;
+    // Phone digit-only match on any field that looks like phone
+    const phoneLike = (customer?.phone || customer?.mobile || customer?.contact || '').toString();
+    const phoneDigits = phoneLike.replace(/\D/g, '');
+
+    const isPhoneMatch = digitSearch && phoneDigits.includes(digitSearch);
+    const passesSearch = !rawSearch || textMatch || isPhoneMatch;
+
+    // Optional numeric filters if present
+    const ordersRaw = customer.total_orders ?? customer.orders;
+    const spendingRaw = customer.total_spending ?? customer.spent;
+    const orders = ordersRaw === undefined || ordersRaw === null ? null : Number(ordersRaw);
+    const spending = spendingRaw === undefined || spendingRaw === null ? null : Number(spendingRaw);
+
+    // removed duplicate isPhoneMatch/passesSearch definitions that caused redeclare errors
 
     // ✅ Orders filter
     const passesOrderMin =
-      orderFilter.min === null || orders >= orderFilter.min;
+      orderFilter.min === null || (Number.isFinite(orders) && orders >= orderFilter.min);
     const passesOrderMax =
-      orderFilter.max === null || orders <= orderFilter.max;
+      orderFilter.max === null || (Number.isFinite(orders) && orders <= orderFilter.max);
 
     // ✅ Spending filter
     const passesSpendingMin =
-      spendingFilter.min === null || spending >= spendingFilter.min;
+      spendingFilter.min === null || (Number.isFinite(spending) && spending >= spendingFilter.min);
     const passesSpendingMax =
-      spendingFilter.max === null || spending <= spendingFilter.max;
+      spendingFilter.max === null || (Number.isFinite(spending) && spending <= spendingFilter.max);
 
     return (
       passesSearch &&
@@ -97,7 +114,7 @@ function CustomerAnalysis() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 max-w-3xl">
+      {/* <div className="mb-6 max-w-3xl">
         <div className="bg-gradient-to-r from-green-100 to-green-200 border border-green-300 shadow-md rounded-2xl px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-green-800">{t("filter_customers")}</h3>
@@ -109,9 +126,9 @@ function CustomerAnalysis() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4"> */}
             {/* Orders Min */}
-            <div>
+            {/* <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">{t("orders")} ≥</label>
               <input
                 type="number"
@@ -126,10 +143,10 @@ function CustomerAnalysis() {
                   }))
                 }
               />
-            </div>
+            </div> */}
 
             {/* Orders Max */}
-            <div>
+            {/* <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">{t("orders")} ≤</label>
               <input
                 type="number"
@@ -144,10 +161,10 @@ function CustomerAnalysis() {
                   }))
                 }
               />
-            </div>
+            </div> */}
 
             {/* Spending Min */}
-            <div>
+            {/* <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">{t("spent")} ≥</label>
               <input
                 type="number"
@@ -163,10 +180,10 @@ function CustomerAnalysis() {
                   }))
                 }
               />
-            </div>
+            </div> */}
 
             {/* Spending Max */}
-            <div>
+            {/* <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">{t("spent")} ≤</label>
               <input
                 type="number"
@@ -182,12 +199,12 @@ function CustomerAnalysis() {
                   }))
                 }
               />
-            </div>
-          </div>
+            </div> */}
+          {/* </div>
         </div>
-      </div>
+      </div> */}
 
-      <CustomersTable customers={filteredCustomers}/>
+      <CustomersTable customers={filteredCustomers} columns={columns}/>
       <div className="flex justify-center my-8">
         <div className="bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 shadow-md rounded-2xl px-6 py-4 text-center w-full max-w-3xl">
           <h3 className="text-2xl font-bold text-blue-800 tracking-wide">
@@ -195,6 +212,7 @@ function CustomerAnalysis() {
           </h3>
         </div>
       </div>
+
       <CustomerClassificationTables/>
       <div className="flex justify-center my-8">
         <div className="bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 shadow-md rounded-2xl px-6 py-4 text-center w-full max-w-3xl">
@@ -203,15 +221,16 @@ function CustomerAnalysis() {
           </h3>
         </div>
       </div>
+      
       <CustomerSpendingClassificationTables/>
-      <div className="flex justify-center my-8">
+      {/* <div className="flex justify-center my-8">
         <div className="bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 shadow-md rounded-2xl px-6 py-4 text-center w-full max-w-3xl">
           <h3 className="text-2xl font-bold text-blue-800 tracking-wide">
             {t("low_churn_table")}
           </h3>
         </div>
       </div>
-      <LowChurnCustomers/>
+      <LowChurnCustomers/> */}
     </div>
   )
 }
