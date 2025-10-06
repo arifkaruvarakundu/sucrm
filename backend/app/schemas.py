@@ -1,6 +1,7 @@
 # app/schemas.py
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from datetime import datetime
 
 class FileRowBase(BaseModel):
     data: Dict[str, Any]
@@ -28,3 +29,32 @@ class UploadedFile(UploadedFileBase):
     rows: List[FileRow] = []
     class Config:
         orm_mode = True
+
+
+class UserBase(BaseModel):
+    email: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserOut(UserBase):
+    id: int
+    user_type: str
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: str | None = None
+
+
+class FileResponse(BaseModel):
+    id: int
+    name: str
+    uploadedAt: datetime | None = None
+    size: int | None = None
+    contentType: str | None = None

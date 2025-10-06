@@ -169,3 +169,50 @@ def infer_customer_fields_with_llm(
     result[key] = val if val in column_names else None
   return result
 
+def infer_order_fields_with_llm(
+    column_names: List[str], 
+    sample_values: Dict[str, List[str]]
+) -> Dict[str, str]:
+    """
+    Use an LLM to infer canonical order fields from arbitrary uploaded file column names.
+    Canonical fields: order_id, customer_name, amount, date, status
+    """
+    prompt = f"""
+You are given a list of dataframe columns and sample values.
+Map them to the following canonical order fields if possible:
+- order_id
+- customer_name
+- amount
+- date
+- status
+
+Columns: {column_names}
+
+Sample values per column:
+{sample_values}
+
+Return ONLY a valid JSON object where keys are canonical fields
+and values are the chosen column name (or null if not found).
+    """
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": "You are a data cleaning assistant."},
+                  {"role": "user", "content": prompt}],
+        temperature=0,
+    )
+
+    # Extract JSON safely
+    import json
+    try:
+        mapping = json.loads(response.choices[0].message.content.strip())
+    except Exception:
+        mapping = {
+            "order_id": None,
+            "customer_name": None,
+            "amount": None,
+            "date": None,
+            "status": None,
+        }
+
+    return mapping

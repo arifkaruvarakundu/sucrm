@@ -7,6 +7,7 @@ import  Button  from "../ui/Button"
 import { Upload, FileSpreadsheet, X, CheckCircle } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { useNavigate } from "react-router-dom"
+import api from "../../../api_config"
 
 export default function FileUpload() {
     
@@ -39,12 +40,26 @@ export default function FileUpload() {
 
   const handleAnalyze = async () => {
     if (!selectedFile) return;
+  
     const formData = new FormData();
     formData.append("file", selectedFile);
-    const res = await fetch("http://127.0.0.1:8000/upload-file/", { method: "POST", body: formData });
-    if (!res.ok) { console.error("Upload failed"); return; }
-    console.log("Uploaded:", await res.json());
-    navigate("dashboard")
+  
+    try {
+      const token = localStorage.getItem("token");
+      const res = await api.post("/upload-file/", formData, {
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+  
+      console.log("Uploaded:", res.data);
+  
+      // redirect after success
+      navigate("/dataSelection");
+    } catch (err) {
+      console.error("Upload failed:", err.response?.data || err.message);
+    }
   };
 
   const handleDragOver = useCallback((e) => {
@@ -76,8 +91,6 @@ export default function FileUpload() {
     processFiles(selectedFiles)
 
   }, [])
-
-  
 
   const simulateFileProcessing = (fileIndex) => {
     const interval = setInterval(() => {
@@ -214,14 +227,14 @@ export default function FileUpload() {
                     </div>
                   )}
                   <div className="pt-2">
-  <Button
-    onClick={handleAnalyze}
-    disabled={!selectedFile}
-    className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600"
-  >
-    Analyse Data
-  </Button>
-</div>
+                    <Button
+                      onClick={handleAnalyze}
+                      disabled={!selectedFile}
+                      className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600"
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Chart from 'react-apexcharts';
-import axios from 'axios';
-import API_BASE_URL from '../../../api_config';
+
+import api from '../../../api_config';
 
 const ProductOrderGraph = () => {
   const [searchParams] = useSearchParams();
@@ -15,8 +15,8 @@ const ProductOrderGraph = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(
-          `${API_BASE_URL}/customer-product-orders?customer_id=${customer_id}&product_external_id=${product_external_id}`
+        const res = await api.get(
+          `/customer-product-orders?customer_id=${customer_id}&product_external_id=${product_external_id}`
         );
         setOrderData(res.data);
       } catch (err) {

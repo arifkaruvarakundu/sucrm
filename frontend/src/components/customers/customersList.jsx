@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import API_BASE_URL from "../../../api_config";
+import api from "../../../api_config";
 
 const CustomerList = ({ onSelectCustomers }) => {
   const [customers, setCustomers] = useState([]);
@@ -12,7 +12,7 @@ const CustomerList = ({ onSelectCustomers }) => {
   const rowsPerPage = 20;
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/customers-table`)
+    api.get(`/customers-table`)
       .then(res => setCustomers(res.data))
       .catch(err => console.error(err));
   }, []);

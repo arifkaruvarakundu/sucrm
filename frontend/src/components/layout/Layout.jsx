@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import ThemeAction from '../../redux/actions/ThemeAction'
 
 const Layout = () => {
-  const themeReducer = useSelector(state => state.ThemeReducer)
+  const theme = useSelector(state => state.theme)
   const dispatch = useDispatch()
 
   useEffect(() => {
@@ -21,7 +21,7 @@ const Layout = () => {
   }, [dispatch])
 
   return (
-    <div className={`layout ${themeReducer.mode} ${themeReducer.color}`}>
+    <div className={`layout ${theme.mode} ${theme.color}`}>
       <Sidebar />
       <div className="layout__content">
         <TopNav />

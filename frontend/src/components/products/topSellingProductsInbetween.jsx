@@ -3,7 +3,7 @@ import Chart from "react-apexcharts";
 import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import API_BASE_URL from '../../../api_config';
+import api from '../../../api_config';
 import { useTranslation } from 'react-i18next';
 
 
@@ -17,7 +17,7 @@ const TopSellingProductsChartInbetween = () => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/product-analysis/top-products-by-date`, {
+      const res = await api.get("/product-analysis/top-products-by-date", {
         params: {
           // Send just YYYY-MM-DD to avoid timezone mismatch issues
           start_date: startDate.toISOString().split("T")[0],
@@ -36,7 +36,7 @@ const TopSellingProductsChartInbetween = () => {
     } catch (err) {
       console.error("Failed to fetch top products:", err);
     }
-  };  
+  };
 
   useEffect(() => {
     fetchData();

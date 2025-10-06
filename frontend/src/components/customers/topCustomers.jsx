@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Chart from "react-apexcharts";
-import axios from "axios";
-import API_BASE_URL from "../../../api_config";
+import api from "../../../api_config";
 import { useTranslation } from "react-i18next";
 
 const TopCustomersChart = () => {
@@ -10,7 +9,7 @@ const TopCustomersChart = () => {
   const { t } = useTranslation("customerAnalysis");
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/dashboard/top-customers`).then((res) => {
+    api.get(`/dashboard/top-customers`).then((res) => {
       const rows = Array.isArray(res.data.rows) ? res.data.rows : [];
       
       //sort by total_amount descending and take top 5

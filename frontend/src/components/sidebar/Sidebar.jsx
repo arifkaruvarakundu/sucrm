@@ -1,9 +1,11 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import './sidebar.css'
 import logo from '../../assets/images/logo of feeds.jpg'
 import sidebar_items from '../../assets/JsonData/sidebar_routes.json'
 import { useTranslation } from 'react-i18next';
+import { logout } from '../../redux/actions/AuthActions'
     
 const SidebarItem = props => {
     const { t } = useTranslation("side_bar");
@@ -20,15 +22,18 @@ const SidebarItem = props => {
 }
 
 const Sidebar = () => {
+    
     const { t } = useTranslation("side_bar");
     const location = useLocation()
     const navigate = useNavigate()
     const activePath = location.pathname
+    const dispatch = useDispatch()
 
     const handleLogout = () => {
-        localStorage.clear()   // 👈 clear all tokens/session data
+        dispatch(logout())
         navigate("/")          // 👈 redirect to SignIn page
     }
+    
 
     return (
         <div className='sidebar'>

@@ -3,7 +3,7 @@ import Chart from 'react-apexcharts';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import API_BASE_URL from '../../../api_config';
+import api from '../../../api_config';
 import { useTranslation } from 'react-i18next';
 
 const OrdersInRangeGraph = () => {
@@ -11,15 +11,15 @@ const OrdersInRangeGraph = () => {
   const { t } = useTranslation("ordersAnalysis");
 
   const [granularity, setGranularity] = useState('daily');
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 7)));
-  const [endDate, setEndDate] = useState(new Date());
+  const [startDate, setStartDate] = useState();
+  const [endDate, setEndDate] = useState();
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     if (startDate && endDate) {
       const fetchData = async () => {
         try {
-          const res = await axios.get(`${API_BASE_URL}/orders-in-range`, {
+          const res = await api.get(`/order-analysis/orders-in-graph`, {
             params: {
               start_date: startDate.toISOString().split('T')[0],
               end_date: endDate.toISOString().split('T')[0],
@@ -47,7 +47,7 @@ const OrdersInRangeGraph = () => {
       toolbar: { show: false }
     },
     xaxis: {
-      categories: chartData.map(item => item.date),
+      categories: chartData.map(item => item.date||item.period),
       title: {
         text: t("date")
       }

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Table from "../table/Table";
-import axios from "axios";
-import API_BASE_URL from "../../../api_config";
+import api from "../../../api_config";
 import { useTranslation } from "react-i18next";
 
 const CustomerClassificationTables = () => {
@@ -39,7 +38,7 @@ const CustomerClassificationTables = () => {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/customer-analysis/full-customer-classification`);
+        const res = await api.get(`/customer-analysis/full-customer-classification`);
         const data = Array.isArray(res.data) ? res.data : [];
         setAllCustomers(data);
       } catch (error) {

@@ -1,71 +1,43 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Table from '../table/Table'
-import API_BASE_URL from '../../../api_config'
+import api from '../../../api_config'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { useTranslation } from 'react-i18next';
 
 const OrderTable = () => {
-
   const { t } = useTranslation("ordersAnalysis");
-  
+
   const [orders, setOrders] = useState([])
   const [filteredOrders, setFilteredOrders] = useState([])
   const [startDate, setStartDate] = useState(null)
   const [endDate, setEndDate] = useState(null)
-
-  const simplifyReferrer = (url) => {
-  if (!url) return ''
-
-  const mappings = {
-    'google.com': 'google',
-    'instagram.com': 'instagram',
-    'l.instagram.com': 'instagram',
-    'souqalsultan.com': 'souqalsultan',
-    'linktr.ee': 'linktree',
-    'kpay.com.kw': 'knet',
-    'facebook.com': 'facebook',
-    'fbclid=': 'facebook',
-  }
-
-  try {
-    const parsedUrl = new URL(url)
-    const hostname = parsedUrl.hostname
-
-    // Match known domains
-    for (const key in mappings) {
-      if (hostname.includes(key) || url.includes(key)) {
-        return mappings[key]
-      }
-    }
-
-    return hostname // fallback to the hostname itself
-  } catch (e) {
-    return url // fallback to raw URL if invalid
-  }
-}
+  const [columns, setColumns] = useState([]) // dynamic columns
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/orders-data`)
-
-       // Preprocess attribution_referrer
-    const enrichedData = res.data.map((order) => ({
-      ...order,
-      attribution_referrer: simplifyReferrer(order.attribution_referrer),
-    }))
-
-      setOrders(enrichedData)
-      setFilteredOrders(enrichedData)
+      const params = {}
+  
+      if (startDate) params.start_date = startDate.toISOString().split("T")[0]
+      if (endDate) params.end_date = endDate.toISOString().split("T")[0]
+  
+      const res = await api.get(`/order-analysis/orders-in-range`, { params })
+      const data = res.data
+  
+      setOrders(data)
+      setFilteredOrders(data)
+  
+      if (data.length > 0) setColumns(Object.keys(data[0]))
     } catch (err) {
       console.error('Error fetching orders:', err)
     }
   }
+  
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    if (startDate && endDate) fetchOrders()
+  }, [startDate, endDate])
 
   const filterByDateRange = () => {
     if (startDate && endDate) {
@@ -83,30 +55,29 @@ const OrderTable = () => {
     filterByDateRange()
   }, [startDate, endDate, orders])
 
-  const headData = ['orderId', 'customer', 'date', 'amount', 'status', 'attributionReferrer']
-
   const renderHead = (item, index) => <th key={index}>{t(item)}</th>
 
   const renderBody = (item, index) => (
     <tr key={index}>
-      <td>{item.id}</td>
-      <td>{item.user}</td>
-      <td>{item.date}</td>
-      <td>{item.Amount}</td>
-      <td>
-        <span
-          className={`badge ${
-            item.status === 'processing'
-              ? 'bg-yellow-500'
-              : item.status === 'failed'
-              ? 'bg-red-500'
-              : 'bg-green-500'
-          } text-white px-2 py-1 rounded`}
-        >
-          {item.status}
-        </span>
-      </td>
-      <td>{item.attribution_referrer}</td>
+      {columns.map((col) => (
+        <td key={col}>
+          {col === "status" ? (
+            <span
+              className={`badge ${
+                item.status === 'processing'
+                  ? 'bg-yellow-500'
+                  : item.status === 'failed'
+                  ? 'bg-red-500'
+                  : 'bg-green-500'
+              } text-white px-2 py-1 rounded`}
+            >
+              {item.status}
+            </span>
+          ) : (
+            item[col]
+          )}
+        </td>
+      ))}
     </tr>
   )
 
@@ -142,14 +113,14 @@ const OrderTable = () => {
           <div className="card__header">
             <h3>{t("tableTitle")}</h3>
             <p className="text-sm text-gray-600 mt-2">
-                {t("showing")} <span className="font-semibold">{filteredOrders.length}</span> {t("order")}
-                {filteredOrders.length !== 1 ? 's' : ''} {t("inSelectedDateRange")}
+              {t("showing")} <span className="font-semibold">{filteredOrders.length}</span> {t("order")}
+              {filteredOrders.length !== 1 ? 's' : ''} {t("inSelectedDateRange")}
             </p>
           </div>
           <div className="card__body">
             <Table
               limit="10"
-              headData={headData}
+              headData={columns}
               renderHead={renderHead}
               bodyData={filteredOrders}
               renderBody={renderBody}

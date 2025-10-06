@@ -23,5 +23,16 @@
         "key": "logout",
         "route": "/",
         "icon": "bx bx-log-out"
+    },
+    {
+        "key": "UploadData",
+        "route": "/",
+        "icon": "bx bx-log-out"
+    },
+    {
+        "key": "Your Files",
+        "route": "/files",
+        "icon": "bx bx-folder"
     }
+
 ]

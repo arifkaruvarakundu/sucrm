@@ -8,12 +8,16 @@ import './assets/css/grid.css'
 import './assets/css/theme.css'
 import './assets/css/index.css'
 import './i18n';
-import store from './redux/store.js'
+import './assets/css/globals.css'
+import {store,persistor} from './redux/store.js'
+import { PersistGate } from "redux-persist/integration/react";
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
-    <StrictMode>
-      <App />
-    </StrictMode>,
+    <PersistGate loading={null} persistor={persistor}>
+      <StrictMode>
+        <App />
+      </StrictMode>
+    </PersistGate>
   </Provider>
 )

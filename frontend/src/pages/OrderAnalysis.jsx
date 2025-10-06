@@ -14,9 +14,9 @@ const OrderAnalysis = () => {
       <h2 className="text-xl font-semibold mb-4">{t("orderAnalysis")}</h2>
       <OrdersInRangeGraph />
       {/* <TopSellingProductsChartInbetween /> */}
-      <AttributionPieChart />
+      {/* <AttributionPieChart /> */}
       <OrderTable/>
-      <LocationBasedOrders />
+      {/* <LocationBasedOrders /> */}
     </div>
   );
 };

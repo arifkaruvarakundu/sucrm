@@ -3,7 +3,7 @@ import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import Table from '../table/Table';
-import API_BASE_URL from '../../../api_config';
+import api from '../../../api_config';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -20,7 +20,7 @@ const ProductSalesTable = () => {
 
   const fetchSales = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/product-analysis/products-sales-table`, {
+      const res = await api.get(`/product-analysis/products-sales-table`, {
         params: {
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString()
@@ -34,7 +34,7 @@ const ProductSalesTable = () => {
     } catch (err) {
       console.error('Error fetching product sales:', err)
     }
-  }
+  }    
 
   useEffect(() => {
     fetchSales()

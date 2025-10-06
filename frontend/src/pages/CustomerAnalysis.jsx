@@ -4,7 +4,7 @@ import CustomersTable from "../components/customers/customersTable"
 import CustomerClassificationTables from "../components/customers/cutomerTableBasedOrderNo"
 import CustomerSpendingClassificationTables from "../components/customers/CustomerSpendingClassificationTables";
 import LowChurnCustomers from "../components/customers/CustomersWithLowChurnRisk";
-import API_BASE_URL from "../../api_config";
+import api from "../../api_config";
 import axios from "axios";
 import { useTranslation } from 'react-i18next'; 
 
@@ -24,9 +24,10 @@ function CustomerAnalysis() {
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const res = await axios.get(`${API_BASE_URL}/customer-analysis/customers-table`);
+        const res = await api.get(`/customer-analysis/customers-table`);
         const list = Array.isArray(res.data?.customers) ? res.data.customers : [];
         const cols = Array.isArray(res.data?.columns) ? res.data.columns : (list[0] ? Object.keys(list[0]) : []);
+        console.log("response of customers table:", list)
         setCustomers(list);
         setFilteredCustomers(list);
         setColumns(cols);

@@ -4,9 +4,14 @@ from app.routers.data_upload import router as data_upload_router
 from app.routers.dashboard import router as dashboard_data_router
 from app.routers.customer_analysis import router as customer_analysis_router
 from app.routers.product_analysis import router as product_analysis_router
+from app.routers.order_analysis import router as order_analysis_router
+from app.routers.auth import router as auth_router
+from app.routers.data_selection import router as data_selection_router
 import cloudinary
 from dotenv import load_dotenv
 import os
+from fastapi import Request, Response
+import uuid
 
 load_dotenv()
 # Configure Cloudinary
@@ -21,13 +26,8 @@ app = FastAPI(debug=True)
 
 # CORS configuration
 origins = [
-    # "https://sultan-feeds-crm-frontend-git-main-muhammed-harifs-projects.vercel.app",
-    # "https://sultan-feeds-crm-frontend-47i3qtslm-muhammed-harifs-projects.vercel.app/",
-    "http://localhost:5173",  # your frontend
-    "http://localhost:5173/",
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:5174/",
-    "http://localhost:5174"
 ]
 
 app.add_middleware(
@@ -38,11 +38,28 @@ app.add_middleware(
     allow_headers=["*"],              # allow all headers
 )
 
+@app.middleware("http")
+async def guest_id_middleware(request: Request, call_next):
+    response: Response = await call_next(request)
+    guest_id = request.cookies.get("guest_id")
+    if not guest_id:
+        guest_id = str(uuid.uuid4())
+        response.set_cookie(
+            key="guest_id",
+            value=guest_id,
+            max_age=30*24*60*60,  # 30 days
+            httponly=True
+        )
+    return response
+
 # Mount routers
 app.include_router(data_upload_router)
 app.include_router(dashboard_data_router)
 app.include_router(customer_analysis_router)
 app.include_router(product_analysis_router)
+app.include_router(order_analysis_router)
+app.include_router(auth_router)
+app.include_router(data_selection_router)
 
 @app.get("/")
 def read_root():

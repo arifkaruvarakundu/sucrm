@@ -14,31 +14,37 @@ import ChatAI from './components/chat_ai/chat_ai'
 // import ProtectedRoute from './components/ProtectedRoute'
 import Messaging from './pages/Messaging'
 import AnalyseExternalData from './pages/AnalyseExternalData'
-import ExternalDataPage from './pages/ExternalDataPage'
+import ExternalDataPage from './pages/DataUploadPage'
+import DataTypeSelector from './pages/DataSelectionPage'
+import MappingPage from './pages/Analysis_mapping'
+import YourFiles from './pages/UserFiles'
 
 function App() {
   return (
     <Router>
       <Routes>
-         {/* Public routes */}
+        {/* Public routes */}
         <Route path="/" element={<ExternalDataPage />} />
-        {/* Protected routes */}
-          {/* <Route element={<ProtectedRoute />}> */}
-            <Route path="/" element={<Layout />}>
-            <Route path="register" element={<RegisterAdmin />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="ProductAnalysis" element={<ProductAnalysis/>}/>
-            {/* <Route path="product/:id" element={<ProductDetails />} /> */}
-            <Route path="product-sales/:id" element={<ProductSalesGraph />} />
-            <Route path="CustomerAnalysis" element={<CustomerAnalysis />} />
-            <Route path="customer-details/:id" element={<CustomerDetails />} />
-            <Route path="productOrdergraph" element={<ProductOrderGraph />} />
-            <Route path="orderAnalysis" element={<OrderAnalysis/>} />
-            <Route path="messaging" element={<Messaging />} />
-            <Route path="chat" element={<ChatAI/>} />
-            {/* <Route path="AnalyseExternalData" element={<AnalyseExternalData />} /> */}
-            
-            </Route>
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/register" element={<RegisterAdmin />} />
+        <Route path="/dataSelection" element={<DataTypeSelector />} />
+        <Route path="/mappingPage" element={<MappingPage />} />
+        {/* Protected routes (wrapped inside Layout) */}
+        {/* <Route element={<ProtectedRoute />}> */}
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/ProductAnalysis" element={<ProductAnalysis />} />
+          {/* <Route path="/product/:id" element={<ProductDetails />} /> */}
+          <Route path="/product-sales/:id" element={<ProductSalesGraph />} />
+          <Route path="/CustomerAnalysis" element={<CustomerAnalysis />} />
+          <Route path="/customer-details/:id" element={<CustomerDetails />} />
+          <Route path="/productOrdergraph" element={<ProductOrderGraph />} />
+          <Route path="/orderAnalysis" element={<OrderAnalysis />} />
+          <Route path="/messaging" element={<Messaging />} />
+          <Route path="/chat" element={<ChatAI />} />
+          <Route path="/files" element={<YourFiles />} />
+          {/* <Route path="/AnalyseExternalData" element={<AnalyseExternalData />} /> */}
+        </Route>
         {/* </Route> */}
       </Routes>
     </Router>

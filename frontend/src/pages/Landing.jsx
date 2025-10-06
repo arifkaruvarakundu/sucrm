@@ -8,6 +8,7 @@ import StatusCard from '../components/status-card/StatusCard';
 import Table from '../components/table/Table';
 import Badge from '../components/badge/Badge';
 import { useTranslation} from 'react-i18next';
+import api from "../../api_config"
 // import ChatAI from '../components/chat_ai/chat_ai';
 // import statusCards from '../assets/JsonData/status-card-data.json';
 
@@ -54,7 +55,7 @@ const renderCustomerBody = (item, index) => (
     </tr>
 );
 
-// const renderCusomerBody = (item, index) => (
+// const renderCustomerBody = (item, index) => (
 //     <tr key={index}>
 //         <td>{item.username}</td>
 //         <td>{item.order}</td>
@@ -99,98 +100,112 @@ const Dashboard = () => {
     const topCustomerHead = ["user", "totalOrders", "totalSpending"];
     const renderCustomerHead = (item, index) => <th key={index}>{t(item)}</th>;
 
-    // useEffect(() => {
-    //     // set html dir & lang for accessibility & layout
-    //     document.documentElement.lang = i18n.language;
-    //     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
-    // }, [i18n.language]);
-
-    // useEffect(() => {
-    //     axios.get(`${API_BASE_URL}/latest-orders`)
-    //     // axios.get(`${API_BASE_URL}/dashboard/latest-rows`)
-    //         .then(response => {
-    //             console.log("Latest orders:", response.data)
-    //             setOrders(response.data)
-    //             setRows(response.data)
-    //         })
-    //         .catch(error => console.error("Failed to fetch orders:", error))
-    // }, [])
-
     useEffect(() => {
         (async () => {
-          const res = await fetch("http://127.0.0.1:8000/dashboard/latest-rows?limit=5");
-          const api = await res.json(); // [{ row_id, file_id, file_name, data: {...} }, ...]
-          if (!Array.isArray(api) || api.length === 0) {
-            setOrderHeaders([]); setOrders([]); return;
-          }
-          const keys = Object.keys(api[0].data || {});
-          setOrderHeaders(keys.map(k => k.replaceAll("_", " ").toUpperCase()));
-          setOrders(api.map(item => keys.map(k => item.data?.[k] ?? "")));
+            try {
+            const { data } = await api.get("/dashboard/latest-rows", {
+                params: { limit: 5 },
+            });
+
+            // Ensure data is an array
+            if (!Array.isArray(data) || data.length === 0) {
+                setOrderHeaders([]);
+                setOrders([]);
+                console.log("No latest rows:", data);
+                return;
+            }
+
+            // Extract column headers
+            const keys = Object.keys(data[0].data || {});
+            setOrderHeaders(keys.map((k) => k.replaceAll("_", " ").toUpperCase()));
+
+            // Map rows into array of arrays for table
+            const formattedRows = data.map((item) =>
+                keys.map((k) => item.data?.[k] ?? "")
+            );
+            setOrders(formattedRows);
+
+            console.log("Latest rows:", formattedRows);
+            } catch (err) {
+            console.error("Error fetching latest rows:", err);
+            }
         })();
-      }, []);
+        }, []);
 
       useEffect(() => {
         (async () => {
-          const res = await fetch("http://127.0.0.1:8000/dashboard/top-customers?limit=5");
-          const data = await res.json(); // { customer_column, amount_column, rows: [...] }
-          console.log('top-customers data', data)
-          const rows = Array.isArray(data.rows) ? data.rows : [];
-          if (rows.length === 0) { setTopCustHeaders([]); setTopCustRows([]); return; }
-      
-          const headers = Object.keys(rows[0]); // e.g. [customer_column, "orders", "total_amount"]
-          setTopCustHeaders(headers.map(h => h.replaceAll("_"," ").toUpperCase()));
-          setTopCustRows(rows.map(r => headers.map(h => r[h] ?? "")));
+            try {
+            const { data } = await api.get("/dashboard/top-customers", {
+                params: { limit: 5 },
+            });
+
+            // Ensure rows exist
+            const rows = Array.isArray(data.rows) ? data.rows : [];
+            if (rows.length === 0) {
+                setTopCustHeaders([]);
+                setTopCustRows([]);
+                console.log("No top customers:", data);
+                return;
+            }
+
+            // Extract headers dynamically
+            const headers = Object.keys(rows[0]); // e.g. ["user", "total_orders", "total_spending"]
+            setTopCustHeaders(headers.map((h) => h.replaceAll("_", " ").toUpperCase()));
+
+            // Map rows into array-of-arrays for Table
+            const formattedRows = rows.map((row) => headers.map((h) => row[h] ?? ""));
+            setTopCustRows(formattedRows);
+
+            console.log("Top customers formatted:", formattedRows);
+            } catch (err) {
+            console.error("Error fetching top customers:", err);
+            }
         })();
-      }, []);
+        }, []);
 
-    useEffect(() => {
-    const fetchStatusCards = async () => {
-        try {
-            const totalOrdersRes = await axios.get(`${API_BASE_URL}/dashboard/total-orders-count`);
-            const {  count } = totalOrdersRes.data;
-            const totalSalesRes = await axios.get(`${API_BASE_URL}/dashboard/total-sales`);
-            const { total_sales } = totalSalesRes.data;
-            const totalProductRes = await axios.get(`${API_BASE_URL}/dashboard/total-products`);
-            const {total_products} = totalProductRes.data
-            const totalCustomersRes = await axios.get(`${API_BASE_URL}/dashboard/total-customers`);
-            console.log("total customers:")
-            const {total_customers} = totalCustomersRes.data
-
-            // Add icons manually based on title or order
+      useEffect(() => {
+        const fetchStatusCards = async () => {
+          try {
+            const { data: { count } } = await api.get("/dashboard/total-orders-count");
+            const { data: { total_sales } } = await api.get("/dashboard/total-sales");
+            const { data: { total_products } } = await api.get("/dashboard/total-products");
+            const { data: { total_customers } } = await api.get("/dashboard/total-customers");
+            console.log("total customers",total_customers )
+    
             const cards = [
-                {
-                    title: t("totalSales"),
-                    count: total_sales,
-                    icon: "bx bx-shopping-bag"
-                },
-                {
-                    title: "Total Products",
-                    count: total_products,
-                    icon: "bx bx-cart"
-                },
-                {
-                    title: t("totalCustomers"),
-                    count: total_customers,
-                    icon: "bx bx-dollar-circle"
-                },
-                {
-                    title: t("totalOrders"),
-                    count,
-                    icon: "bx bx-receipt"
-                }
+              {
+                title: t("totalSales"),
+                count: total_sales,
+                icon: "bx bx-shopping-bag",
+              },
+              {
+                title: "Total Products",
+                count: total_products,
+                icon: "bx bx-cart",
+              },
+              {
+                title: t("totalCustomers"),
+                count: total_customers,
+                icon: "bx bx-dollar-circle",
+              },
+              {
+                title: t("totalOrders"),
+                count,
+                icon: "bx bx-receipt",
+              },
             ];
-
+    
             setStatusCards(cards);
-        } catch (error) {
+          } catch (error) {
             console.error("Failed to fetch status card data", error);
-        }
-    };
-
-    fetchStatusCards();
-}, [i18n.language]);
+          }
+        };
+    
+        fetchStatusCards();
+      }, [i18n.language]);
 
     useEffect(() => {
-        axios.get(`${API_BASE_URL}/sales-comparison`)
+        api.get(`/sales-comparison`)
             .then((res) => {
                 setSalesComparison(res.data);
             })
@@ -272,7 +287,7 @@ const Dashboard = () => {
 
     const latestRowsHeaders = ["orderId", "user", "totalPrice", "date", "status"];
     const renderOrderHead = (item, index) => <th key={index}>{t(item)}</th>;
-    const themeReducer = useSelector(state => state.ThemeReducer.mode)
+    const theme = useSelector(state => state.theme)
 
     return (
         <div>
@@ -322,21 +337,19 @@ const Dashboard = () => {
                         <div className="card__body">
                             {topCustRows.length > 0 ? (
                                 <Table
-                                headData={topCustHeaders}
-                                renderHead={(h, i) => <th key={i}>{h}</th>}
-                                bodyData={topCustRows}
-                                renderBody={(row, rIdx) => (
-                                    <tr key={rIdx}>
-                                    {row.map((cell, cIdx) => (
-                                        <td key={cIdx}>
-                                        {cIdx === row.length - 1 
-                                            ? `KD ${Number(cell).toFixed(2)}`
-                                            : cell}
-                                        </td>
-                                    ))}
-                                    </tr>
-                                )}
-                                />
+                                    headData={topCustHeaders}
+                                    renderHead={(h, i) => <th key={i}>{h}</th>}
+                                    bodyData={topCustRows}
+                                    renderBody={(row, rIdx) => (
+                                        <tr key={rIdx}>
+                                        {row.map((cell, cIdx) => (
+                                            <td key={cIdx}>
+                                            {cIdx === row.length - 1 ? `KD ${Number(cell).toFixed(2)}` : cell}
+                                            </td>
+                                        ))}
+                                        </tr>
+                                    )}
+                                    />
                             ) : (
                                 <p className="text-center">{t("noData")}</p>
                             )}

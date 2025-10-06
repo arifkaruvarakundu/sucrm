@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import Chart from 'react-apexcharts'
-import API_BASE_URL from '../../../api_config'
+import api from '../../../api_config'
 import ForecastTable from './product_predictions'
 
 const ProductSalesGraph = () => {
@@ -20,7 +20,7 @@ const ProductSalesGraph = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/product-sales-over-time`, {
+        const res = await api.get(`/product-sales-over-time`, {
           params: {
             start_date: startDate,
             end_date: endDate,

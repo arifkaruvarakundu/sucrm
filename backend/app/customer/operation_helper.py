@@ -48,9 +48,13 @@ def extract_customer_table_from_orders(df: pd.DataFrame) -> List[Dict[str, Any]]
     records: List[Dict[str, Any]] = projected.where(pd.notnull(projected), None).to_dict(orient="records")
     return records
 
-def get_customers_table(db: Session, limit_rows_scanned: int | None = 5000) -> Dict[str, Any]:
+def get_customers_table(
+    db: Session,
+    user_id: int | None = None,
+    guest_id: str | None = None, 
+    limit_rows_scanned: int | None = 5000) -> Dict[str, Any]:
     # Gather uploaded file rows and assemble into a DataFrame
-    rows = fetch_file_rows(db)
+    rows = fetch_file_rows(db, user_id=user_id, guest_id=guest_id, limit=limit_rows_scanned)
     data_records: List[Dict[str, Any]] = [r.data for r in rows]
     if limit_rows_scanned is not None and len(data_records) > limit_rows_scanned:
         data_records = data_records[:limit_rows_scanned]
@@ -70,11 +74,12 @@ def get_customers_table(db: Session, limit_rows_scanned: int | None = 5000) -> D
         "count": len(persisted)
     }
 
-
 def aggregate_customers_from_orders(db: Session, limit_rows_scanned: int | None = 50000) -> List[Dict[str, Any]]:
+
     """Build per-customer aggregates (name, phone, order_count, total_spending, last_order_date).
     Tries to infer common columns from uploaded orders-like data.
     """
+    
     rows = fetch_file_rows(db)
     records: List[Dict[str, Any]] = [r.data for r in rows]
     if limit_rows_scanned is not None and len(records) > limit_rows_scanned:
@@ -137,4 +142,5 @@ def aggregate_customers_from_orders(db: Session, limit_rows_scanned: int | None 
 
     # Sort by order_count desc as a default
     results.sort(key=lambda r: (r["order_count"], r["total_spending"]), reverse=True)
+
     return results

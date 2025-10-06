@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Table from '../table/Table'
-import API_BASE_URL from '../../../api_config'
+import api from '../../../api_config'
 import { useTranslation } from 'react-i18next';
 
 const ProductTable = () => {
@@ -10,7 +10,7 @@ const ProductTable = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/products-table`)
+      const res = await api.get(`/products-table`)
       setProducts(res.data)
     } catch (err) {
       console.error('Error fetching products:', err)
