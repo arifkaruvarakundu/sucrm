@@ -109,7 +109,6 @@ def extract_orders_table_from_raw(df: pd.DataFrame) -> List[Dict[str, Any]]:
 
     # 🔑 Ask LLM which columns map to canonical order fields
     mapping = infer_order_fields_with_llm(column_names, samples)
-    print("LLM Mapping:", mapping)
 
     # --- Fallbacks if LLM fails or chooses useless columns ---
     # --- Fallbacks if LLM fails ---
@@ -131,8 +130,6 @@ def extract_orders_table_from_raw(df: pd.DataFrame) -> List[Dict[str, Any]]:
                     mapping[field] = cand_norm
                     break
 
-    print("FINAL mapping:", mapping)
-
     selected_cols = [c for c in mapping.values() if c]
     if not selected_cols:
         return []
@@ -140,10 +137,6 @@ def extract_orders_table_from_raw(df: pd.DataFrame) -> List[Dict[str, Any]]:
     projected = df[selected_cols].copy()
     rename_map = {v: k for k, v in mapping.items() if v}
     projected = projected.rename(columns=rename_map)
-
-    print("COLUMNS:", df.columns.tolist())
-    print("SAMPLES:", samples)
-    print("PROJECTED DF:", projected.head())
 
     # Type conversions
     if "amount" in projected.columns:
@@ -179,17 +172,12 @@ def get_orders_in_range(
     # Parse dates
     df_orders["date"] = pd.to_datetime(df_orders["date"], errors="coerce")
     df_orders = df_orders.dropna(subset=["date"])
-    print("Orders DF:", df_orders.head())
+
     try:
         start_dt = pd.to_datetime(start_date)
         end_dt = pd.to_datetime(end_date)
     except Exception:
         raise ValueError("Invalid date format. Use YYYY-MM-DD.")
-
-    # print("=== BEFORE FILTERING ===")
-    # print(df.head(20))  # show some rows
-    # print(df.dtypes)
-    # print("min date:", df['date'].min(), "max date:", df['date'].max())
 
     # Filter range
     mask = (df_orders["date"] >= start_dt) & (df_orders["date"] <= end_dt)
@@ -206,15 +194,22 @@ def get_orders_aggregated(
     db: Session,
     start_date: str,
     end_date: str,
-    granularity: str = "daily"
+    identity: dict,
+    granularity: str = "daily",
+    file_id: int| None=None
 ) -> List[Dict[str, Any]]:
+
     """
     Return aggregated orders for charts, grouped by daily, monthly, or yearly.
     Uses the same LLM-based extraction as `get_orders_in_range`.
     """
 
-    # Step 1: Fetch and normalize raw data
-    rows = fetch_file_rows(db)
+     # Step 1: Extract user/guest info from identity
+    user_id = identity.get("user_id")
+    guest_id = identity.get("guest_id")
+
+    # Step 2: Fetch and normalize raw data
+    rows = fetch_file_rows(db, user_id=user_id, guest_id=guest_id, file_id=file_id)
     records: List[Dict[str, Any]] = [r.data for r in rows]
     if not records:
         return []
@@ -231,7 +226,7 @@ def get_orders_aggregated(
     df_orders["date"] = pd.to_datetime(df_orders["date"], errors="coerce")
     df_orders = df_orders.dropna(subset=["date"])
 
-    # Step 2: Filter by date range
+    # Step 3: Filter by date range
     try:
         start_dt = pd.to_datetime(start_date)
         end_dt = pd.to_datetime(end_date)
@@ -242,7 +237,7 @@ def get_orders_aggregated(
     if df_orders.empty:
         return []
 
-    # Step 3: Aggregate based on granularity
+    # Step 4: Aggregate based on granularity
     if granularity == "daily":
         df_orders["period"] = df_orders["date"].dt.strftime("%Y-%m-%d")
     elif granularity == "monthly":
@@ -257,7 +252,7 @@ def get_orders_aggregated(
         total_amount=pd.NamedAgg(column="amount", aggfunc="sum")
     ).reset_index()
 
-    # Step 4: Convert to JSON-friendly format
+    # Step 5: Convert to JSON-friendly format
     df_agg["total_amount"] = df_agg["total_amount"].astype(float)
     result = df_agg.to_dict(orient="records")
     return result

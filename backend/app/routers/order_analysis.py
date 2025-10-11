@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.order.operation_helper import get_orders_in_range, get_orders_aggregated
 import math
+from app.utils.deps import get_identity
 
 router = APIRouter(prefix = "/order-analysis", tags=["order-analysis"])
 
@@ -37,6 +38,8 @@ def orders_in_range(
     start_date: str,
     end_date: str,
     granularity: str = "daily",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    identity: dict = Depends(get_identity),
+    file_id: int | None = Query(None, description = "Optional file ID to filter by")
 ):
-    return get_orders_aggregated(db, start_date, end_date, granularity)
+    return get_orders_aggregated(db=db, start_date=start_date, end_date=end_date, granularity=granularity, identity= identity, file_id=file_id)

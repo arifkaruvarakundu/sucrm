@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import Chart from "react-apexcharts";
-import axios from "axios";
 import api from "../../../api_config"
 import { useTranslation } from 'react-i18next';
 
 const TopSellingProductsChart = () => {
+
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
 

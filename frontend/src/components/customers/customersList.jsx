@@ -12,8 +12,8 @@ const CustomerList = ({ onSelectCustomers }) => {
   const rowsPerPage = 20;
 
   useEffect(() => {
-    api.get(`/customers-table`)
-      .then(res => setCustomers(res.data))
+    api.get(`/customer-analysis/customers-table`)
+      .then(res => setCustomers(res.data.rows))
       .catch(err => console.error(err));
   }, []);
 
@@ -22,11 +22,12 @@ const CustomerList = ({ onSelectCustomers }) => {
   }, [selected]);
 
   // Filtering
-  const filteredCustomers = customers.filter(c =>
-    c.user.toLowerCase().includes(filter.toLowerCase()) ||
-    c.phone.includes(filter)
-  );
-
+  const filteredCustomers = customers.filter(c => {
+    const name = (c.customerName || "").toLowerCase();
+    const phone = (c.phone || "").toLowerCase();
+    const search = filter.toLowerCase();
+    return name.includes(search) || phone.includes(search);
+  });
   // Pagination calculations
   const totalPages = Math.ceil(filteredCustomers.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -40,10 +41,10 @@ const CustomerList = ({ onSelectCustomers }) => {
   };
 
   const selectAll = () => {
-    const allIds = filteredCustomers.map(c => c.id);
+    const allIds = filteredCustomers.map(c => c.customerId);
     setSelected(allIds);
   };
-
+  
   const unselectAll = () => {
     setSelected([]);
   };
@@ -101,17 +102,17 @@ const CustomerList = ({ onSelectCustomers }) => {
           <tbody>
             {currentCustomers.map(c => (
               <tr
-                key={c.id}
-                className={`hover:bg-gray-800 ${selected.includes(c.id) ? "bg-blue-50" : ""}`}
+                key={c.customerId}
+                className={`hover:bg-gray-800 ${selected.includes(c.customerId) ? "bg-blue-50" : ""}`}
               >
                 <td className="p-2 border text-center">
                   <input
                     type="checkbox"
-                    checked={selected.includes(c.id)}
-                    onChange={() => toggleSelect(c.id)}
+                    checked={selected.includes(c.customerId)}
+                    onChange={() => toggleSelect(c.customerId)}
                   />
                 </td>
-                <td className="p-2 border">{c.user}</td>
+                <td className="p-2 border">{c.customerName}</td>
                 <td className="p-2 border">{c.phone}</td>
               </tr>
             ))}

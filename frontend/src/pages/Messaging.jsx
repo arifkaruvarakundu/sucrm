@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import CustomerList from "../components/customers/customersList";
 import TemplatesList from "../components/template_lists";
-import axios from "axios";
-import API_BASE_URL from "../../api_config";
+
+import api from "../../api_config"
 
 function Messaging() {
   const [selectedTemplates, setSelectedTemplates] = useState([]);
@@ -25,9 +25,9 @@ function Messaging() {
       };
 
       console.log("payload", payload);
-      console.log("Hitting URL:", `${API_BASE_URL}/send-message-to-each-customer`);
+      console.log("Hitting URL:", `${api}/send-message-to-each-customer`);
 
-      const res = await axios.post(`${API_BASE_URL}/send-message-to-each-customer`, payload);
+      const res = await api.post(`/send-message-to-each-customer`, payload);
 
       alert("Message sent successfully!");
       console.log(res.data);
@@ -39,8 +39,10 @@ function Messaging() {
 
   const syncTemplates = async () => {
   try {
-    const res = await axios.post(`${API_BASE_URL}/sync-templates`);
+    const res = await api.post(`/sync-templates`);
     alert(res.data.message || "Templates synced successfully!");
+
+    console.log("templates fetched:", res.data)
 
     // Optionally, you can refresh the templates list here
     // For example, if TemplatesList supports a refresh prop:
@@ -70,10 +72,10 @@ function Messaging() {
           >
             Sync Templates
           </button>
-          <TemplatesList
+          {/* <TemplatesList
             selectedTemplates={selectedTemplates}
             onSelect={setSelectedTemplates}
-          />
+          /> */}
         </div>
         
         {/* Column 3: Selected Templates */}

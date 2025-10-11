@@ -7,6 +7,7 @@ from app.routers.product_analysis import router as product_analysis_router
 from app.routers.order_analysis import router as order_analysis_router
 from app.routers.auth import router as auth_router
 from app.routers.data_selection import router as data_selection_router
+from app.routers.sync import router as sync_router
 import cloudinary
 from dotenv import load_dotenv
 import os
@@ -60,6 +61,7 @@ app.include_router(product_analysis_router)
 app.include_router(order_analysis_router)
 app.include_router(auth_router)
 app.include_router(data_selection_router)
+app.include_router(sync_router)
 
 @app.get("/")
 def read_root():

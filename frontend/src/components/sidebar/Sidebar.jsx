@@ -33,38 +33,50 @@ const Sidebar = () => {
         dispatch(logout())
         navigate("/")          // 👈 redirect to SignIn page
     }
+      // ✅ Get user_type from localStorage
+  const userType = localStorage.getItem("user_type");
+
+  // ✅ Conditionally filter sidebar items
+  const visibleItems = sidebar_items.filter(item => {
+    if (item.key === 'logout') return false; // handled separately
+    if (item.key === 'Messaging' && userType !== 'admin') return false; // hide if not admin
+    return true;
+  });
+
+
     
 
-    return (
-        <div className='sidebar'>
-            <div className="sidebar__logo">
-                {/* <img src={logo} alt="company logo" />  */}
-                {t("appName")}
-            </div>
-            <div className="sidebar__menu">
-                {
-                    sidebar_items
-                        .filter(item => item.key !== 'logout')
-                        .map((item, index) => (
-                            <Link to={item.route} key={index}>
-                                <SidebarItem
-                                    title={item.key}
-                                    icon={item.icon}
-                                    active={item.route === activePath}
-                                />
-                            </Link>
-                        ))
-                }
-            </div>
-            <div className="sidebar__footer" onClick={handleLogout} style={{ cursor: 'pointer' }}>
-                <SidebarItem
-                    title={'logout'}
-                    icon={'bx bx-log-out'}
-                    active={false}
-                />
-            </div>
-        </div>
-    )
-}
+  return (
+    <div className="sidebar">
+      <div className="sidebar__logo">
+        {t("appName")}
+      </div>
 
-export default Sidebar
+      <div className="sidebar__menu">
+        {visibleItems.map((item, index) => (
+          <Link to={item.route} key={index}>
+            <SidebarItem
+              title={item.key}
+              icon={item.icon}
+              active={item.route === activePath}
+            />
+          </Link>
+        ))}
+      </div>
+
+      <div
+        className="sidebar__footer"
+        onClick={handleLogout}
+        style={{ cursor: 'pointer' }}
+      >
+        <SidebarItem
+          title={'logout'}
+          icon={'bx bx-log-out'}
+          active={false}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;

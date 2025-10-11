@@ -5,6 +5,7 @@ from app.models import User
 from app.database import get_db
 from app.utils.auth import hash_password, verify_password, create_access_token
 from app import models
+from typing import Optional
 
 router = APIRouter()
 
@@ -15,6 +16,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     confirm_password: str
+    user_type: str  # "user" or "admin"
 
     @validator("confirm_password")
     def passwords_match(cls, v, values):
@@ -22,64 +24,76 @@ class UserRegister(BaseModel):
             raise ValueError("Passwords do not match")
         return v
 
+    @validator("user_type")
+    def valid_user_type(cls, v):
+        allowed = ["user", "admin"]
+        if v.lower() not in allowed:
+            raise ValueError(f"user_type must be one of {allowed}")
+        return v.lower()
+
 # For login (simpler)
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    user_type: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     email: EmailStr
+    user_type: Optional[str] = None
 
 @router.post("/register", response_model=TokenResponse)
 def register(user: UserRegister, request: Request, response: Response, db: Session = Depends(get_db)):
+    # 🧠 Check if user already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # 🔐 Hash password
     hashed_pw = hash_password(user.password)
+
+    # 🧍 Create new user (can be 'admin' or 'user')
     new_user = User(
         email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
-        hashed_password=hashed_pw
+        hashed_password=hashed_pw,
+        user_type=user.user_type  # store the user_type
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    # 🔑 Migrate guest-owned files if guest_id cookie exists
+    # 🧩 If guest files exist, transfer ownership to new user
     guest_id = request.cookies.get("guest_id")
     if guest_id:
-        # Update all files belonging to guest → assign to new user
         db.query(models.UploadedFile).filter(
             models.UploadedFile.guest_id == guest_id
         ).update(
             {
                 models.UploadedFile.user_id: new_user.id,
-                models.UploadedFile.guest_id: None
+                models.UploadedFile.guest_id: None,
             },
-            synchronize_session=False
+            synchronize_session=False,
         )
 
-        # Optionally: if you maintain a Guest table, remove the guest row
         if hasattr(models, "Guest"):
             db.query(models.Guest).filter(models.Guest.id == guest_id).delete()
 
         db.commit()
-
-        # Clear cookie on client so they don't keep using guest_id
         response.delete_cookie("guest_id")
 
-    token = create_access_token({"sub": new_user.email})
-    response_data = {
-    "access_token": token,
-    "token_type": "bearer",
-    "email": new_user.email
-    }
+    # 🔑 Generate access token
+    token = create_access_token({"sub": new_user.email, "user_type": new_user.user_type})
 
-    return response_data
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "email": new_user.email,
+        "user_type": new_user.user_type,
+    }
 
 @router.post("/login", response_model=TokenResponse)
 def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -88,4 +102,4 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token({"sub": db_user.email})
-    return { "access_token": token, "token_type": "bearer","email": db_user.email }
+    return { "access_token": token, "token_type": "bearer","email": db_user.email, "user_type":db_user.user_type }

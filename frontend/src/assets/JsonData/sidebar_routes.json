@@ -20,19 +20,13 @@
         "icon": "bx bx-clipboard"
     },
     {
+        "key": "Messaging",
+        "route": "/messaging",
+        "icon": "bx bxs-chat"
+    },
+    {
         "key": "logout",
         "route": "/",
         "icon": "bx bx-log-out"
-    },
-    {
-        "key": "UploadData",
-        "route": "/",
-        "icon": "bx bx-log-out"
-    },
-    {
-        "key": "Your Files",
-        "route": "/files",
-        "icon": "bx bx-folder"
     }
-
 ]

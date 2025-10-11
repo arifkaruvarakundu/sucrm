@@ -3,23 +3,21 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dashboard.operation_helper import get_dashboard_data, get_top_customers, get_total_orders_count, get_total_sales, get_total_customers, get_total_products
 from app.utils.deps import get_identity
-from fastapi import Query
+from fastapi import Query, Request
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("/latest-rows")
-def latest_rows(limit: int = 5, db: Session = Depends(get_db),  identity = Depends(get_identity)):
+def latest_rows(db: Session = Depends(get_db), identity = Depends(get_identity), file_id: int | None = Query(None, description="Optional file ID to filter by"), limit: int = 5):
 
-    user = identity["user"]
-    guest_id = identity["guest_id"]
-    response = get_dashboard_data(db, limit, user_id=(user.id if user else None), guest_id=guest_id)
-
+    response = get_dashboard_data(db=db, identity=identity, file_id=file_id, limit=limit)
+    
     return response
 
 @router.get("/top-customers")
-def top_customers(limit: int = 5, db: Session = Depends(get_db), identity: dict = Depends(get_identity),file_id: int | None = Query(None, description = "Optional file ID to filter by")):
+def top_customers(request: Request, limit: int = 5, db: Session = Depends(get_db), identity: dict = Depends(get_identity), file_id: int | None = Query(None, description = "Optional file ID to filter by")):
 
-    response = get_top_customers(db, identity, limit, file_id)
+    response = get_top_customers(db=db, identity=identity, limit=limit, file_id=file_id)
 
     return response
 

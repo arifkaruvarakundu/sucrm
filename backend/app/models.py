@@ -1,9 +1,10 @@
 # app/models.py
-from sqlalchemy import Column, Integer, String, ForeignKey, JSON, DateTime, LargeBinary, Boolean, Index
+from sqlalchemy import Column, Integer, String, ForeignKey, JSON, DateTime, LargeBinary, Boolean, Index, Text
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 import uuid
+import re
 
 Base = declarative_base()
 
@@ -92,3 +93,18 @@ class ColumnMapping(Base):
     __table_args__ = (
         Index("ix_column_mappings_file_user_analysis", "file_id", "user_id", "analysis_type"),
     )
+
+class WhatsAppTemplate(Base):
+    __tablename__ = "whatsapp_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    template_name = Column(String, unique=True, index=True, nullable=False)
+    category = Column(String(100))
+    language = Column(String(10))
+    status = Column(String(50))
+    body = Column(Text)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @property
+    def variables(self) -> list[str]:
+        return re.findall(r"{{.*?}}", self.body or "")

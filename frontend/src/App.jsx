@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import SignIn from './pages/SignIn'
-import RegisterAdmin from './pages/Register'
+import Register from './pages/Register'
 import Dashboard from './pages/Landing'
 import ProductAnalysis from './pages/ProductAnalysis'
 import Layout from './components/layout/Layout'
@@ -18,6 +18,7 @@ import ExternalDataPage from './pages/DataUploadPage'
 import DataTypeSelector from './pages/DataSelectionPage'
 import MappingPage from './pages/Analysis_mapping'
 import YourFiles from './pages/UserFiles'
+import AdminRegister from './pages/AdminRegistration'
 
 function App() {
   return (
@@ -26,7 +27,8 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<ExternalDataPage />} />
         <Route path="/signin" element={<SignIn />} />
-        <Route path="/register" element={<RegisterAdmin />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/adminregister" element={<AdminRegister />} />
         <Route path="/dataSelection" element={<DataTypeSelector />} />
         <Route path="/mappingPage" element={<MappingPage />} />
         {/* Protected routes (wrapped inside Layout) */}

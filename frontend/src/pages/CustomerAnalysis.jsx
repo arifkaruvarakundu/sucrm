@@ -3,7 +3,7 @@ import TopCustomersChart from "../components/customers/topCustomers"
 import CustomersTable from "../components/customers/customersTable"
 import CustomerClassificationTables from "../components/customers/cutomerTableBasedOrderNo"
 import CustomerSpendingClassificationTables from "../components/customers/CustomerSpendingClassificationTables";
-import LowChurnCustomers from "../components/customers/CustomersWithLowChurnRisk";
+// import LowChurnCustomers from "../components/customers/CustomersWithLowChurnRisk";
 import api from "../../api_config";
 import axios from "axios";
 import { useTranslation } from 'react-i18next'; 
@@ -25,12 +25,15 @@ function CustomerAnalysis() {
     async function fetchCustomers() {
       try {
         const res = await api.get(`/customer-analysis/customers-table`);
-        const list = Array.isArray(res.data?.customers) ? res.data.customers : [];
-        const cols = Array.isArray(res.data?.columns) ? res.data.columns : (list[0] ? Object.keys(list[0]) : []);
-        console.log("response of customers table:", list)
-        setCustomers(list);
-        setFilteredCustomers(list);
-        setColumns(cols);
+
+      // ✅ Use "rows" instead of "customers"
+      const list = Array.isArray(res.data?.rows) ? res.data.rows : [];
+      const cols = Array.isArray(res.data?.columns) ? res.data.columns : (list[0] ? Object.keys(list[0]) : []);
+
+      console.log("response of customers table:", res.data);
+      setCustomers(list);
+      setFilteredCustomers(list);
+      setColumns(cols);
 
       } catch (err) {
         console.error("Error fetching customers", err);

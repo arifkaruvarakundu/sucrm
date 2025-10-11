@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import API_BASE_URL from "../../api_config";
+import api from "../../api_config";
 
 function TemplatesList({ selectedTemplates, onSelect }) {
   const [templates, setTemplates] = useState([]);
@@ -8,7 +7,7 @@ function TemplatesList({ selectedTemplates, onSelect }) {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/templates`);
+        const res = await api.get(`/templates`);
         setTemplates(res.data); 
         // backend should return: [{id, template_name, body, category, language, variables, ...}]
       } catch (err) {

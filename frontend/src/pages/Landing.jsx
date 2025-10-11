@@ -1,7 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-import API_BASE_URL from '../../api_config';
 import Chart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
 import StatusCard from '../components/status-card/StatusCard';
@@ -102,35 +100,38 @@ const Dashboard = () => {
 
     useEffect(() => {
         (async () => {
-            try {
+          try {
             const { data } = await api.get("/dashboard/latest-rows", {
-                params: { limit: 5 },
+              params: { limit: 5 },
             });
-
-            // Ensure data is an array
-            if (!Array.isArray(data) || data.length === 0) {
-                setOrderHeaders([]);
-                setOrders([]);
-                console.log("No latest rows:", data);
-                return;
+      
+            const rows = Array.isArray(data.rows) ? data.rows : [];
+      
+            if (rows.length === 0) {
+              setOrderHeaders([]);
+              setOrders([]);
+              console.log("No latest rows:", data);
+              return;
             }
-
-            // Extract column headers
-            const keys = Object.keys(data[0].data || {});
+      
+            // Extract column headers from the first row's data
+            const keys = Object.keys(rows[0].data || {});
             setOrderHeaders(keys.map((k) => k.replaceAll("_", " ").toUpperCase()));
-
-            // Map rows into array of arrays for table
-            const formattedRows = data.map((item) =>
-                keys.map((k) => item.data?.[k] ?? "")
+      
+            // Map rows into array-of-arrays for table body
+            const formattedRows = rows.map((item) =>
+              keys.map((k) => item.data?.[k] ?? "")
             );
+      
             setOrders(formattedRows);
-
-            console.log("Latest rows:", formattedRows);
-            } catch (err) {
+      
+            console.log("Latest rows formatted:", formattedRows);
+          } catch (err) {
             console.error("Error fetching latest rows:", err);
-            }
+          }
         })();
-        }, []);
+      }, []);
+      
 
       useEffect(() => {
         (async () => {

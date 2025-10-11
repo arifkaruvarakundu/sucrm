@@ -11,9 +11,9 @@ from app.utils.deps import get_identity
 from app.models import *
 from sqlalchemy import or_
 
-def get_dashboard_data(db, limit, user_id: int | None = None, guest_id: str | None = None):
+def get_dashboard_data(db: Session, identity:dict, file_id:int, limit:int):
 
-    dashboard_data_response = get_dashboard_data_from_db(db, limit, user_id, guest_id)
+    dashboard_data_response = get_dashboard_data_from_db(db, identity, file_id, limit)
 
     return dashboard_data_response
 
@@ -53,6 +53,7 @@ def pick_columns_heuristic(df: pd.DataFrame) -> Tuple[Optional[str], Optional[st
   return customer_col, amount_col
 
 def pick_unique_id_column_heuristic(df: pd.DataFrame) -> Optional[str]:
+    
   """Find the best unique identifier column for counting distinct customers."""
   lower_to_raw = {c.lower(): c for c in df.columns}
   
@@ -86,25 +87,40 @@ def _safe_sample_values(df: pd.DataFrame, per_col: int = 5) -> Dict[str, List[st
     samples[col] = masked
   return samples
 
-def _aggregate_top_customers(df: pd.DataFrame, customer_col: str, amount_col: str | None, limit: int) -> List[Dict[str, Any]]:
-  # Coerce amount to numeric for summing
-  if amount_col and amount_col in df.columns:
-    df[amount_col] = pd.to_numeric(df[amount_col], errors="coerce")
-  grp = df.groupby(customer_col, dropna=True)
-  if amount_col and amount_col in df.columns:
-    agg = grp.agg(orders=(customer_col, "count"), total_amount=(amount_col, "sum")).reset_index()
-    agg = agg.sort_values(by=["total_amount", "orders"], ascending=False)
-  else:
-    agg = grp.agg(orders=(customer_col, "count")).reset_index()
-    agg["total_amount"] = None
-    agg = agg.sort_values(by=["orders"], ascending=False)
+def _aggregate_top_customers(df: pd.DataFrame, customer_col: str, amount_col: str | None, limit: int) -> list[dict]:
+    # Normalize column names
+    if customer_col:
+        customer_col = str(customer_col).strip().lower().replace(" ", "_")
+    if amount_col:
+        amount_col = str(amount_col).strip().lower().replace(" ", "_")
 
-  return agg.head(limit).to_dict(orient="records")
+    # Coerce amount to numeric
+    if amount_col and amount_col in df.columns:
+        df[amount_col] = pd.to_numeric(df[amount_col], errors="coerce")
 
-def get_top_customers(db: Session, identity: dict, file_id: int | None = None, limit: int = 5) -> dict:
+    # Ensure customer column exists
+    if customer_col not in df.columns:
+        print("⚠️ Customer column not found in DataFrame:", df.columns.tolist())
+        return []
+
+    grp = df.groupby(customer_col, dropna=True)
+
+    if amount_col and amount_col in df.columns:
+        agg = grp.agg(
+            orders=(customer_col, "count"),
+            total_amount=(amount_col, "sum")
+        ).reset_index()
+        agg = agg.sort_values(by=["total_amount", "orders"], ascending=False)
+    else:
+        agg = grp.agg(orders=(customer_col, "count")).reset_index()
+        agg["total_amount"] = None
+        agg = agg.sort_values(by=["orders"], ascending=False)
+
+    return agg.head(limit).to_dict(orient="records")
+
+def get_top_customers(db: Session, identity: dict, limit: int = 5, file_id: int | None = None) -> dict:
     user = identity.get("user")
     guest_id = identity.get("guest_id")
-
     if not user and not guest_id:
         return {"file_id": None, "customer_column": None, "amount_column": None, "rows": []}
 
@@ -146,7 +162,7 @@ def get_top_customers(db: Session, identity: dict, file_id: int | None = None, l
     )
 
     customer_col = mapping_obj.mapping.get("customerName") if mapping_obj else None
-    amount_col = mapping_obj.mapping.get("amount") if mapping_obj else None
+    amount_col = mapping_obj.mapping.get("totalAmount") if mapping_obj else None
 
     # Step 3: Query FileRows for this file and user/guest
     query = db.query(FileRow).filter(FileRow.file_id == target_file.id)
@@ -167,25 +183,31 @@ def get_top_customers(db: Session, identity: dict, file_id: int | None = None, l
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
     df = df.where(pd.notnull(df), None)
 
-    # Step 5: Detect customer + amount columns if mapping missing
-    if not customer_col or not amount_col:
-        detected_cust, detected_amt = pick_columns_heuristic(df)
-        if not customer_col:
-            customer_col = detected_cust
-        if not amount_col:
-            amount_col = detected_amt
-
-    # Step 6: Aggregate top customers
+    # Step 5: Aggregate top customers strictly using column mapping
     if not customer_col:
         return {"file_id": target_file.id, "customer_column": None, "amount_column": amount_col, "rows": []}
 
     result = _aggregate_top_customers(df, customer_col, amount_col, limit)
 
+    # Rename result keys dynamically
+    pretty_rows = []
+    for row in result:
+        renamed = {}
+        # get normalized names
+        cust_key = str(customer_col).strip().lower().replace(" ", "_")
+        amt_key = str(amount_col).strip().lower().replace(" ", "_") if amount_col else None
+
+        renamed[customer_col] = row.get(cust_key) or row.get("customer") or row.get("customer_col_name")
+        if amount_col:
+            renamed[amount_col] = row.get("total_amount") or row.get(amt_key)
+        renamed["Orders"] = row.get("orders")
+        pretty_rows.append(renamed)
+
     return {
         "file_id": target_file.id,
         "customer_column": customer_col,
         "amount_column": amount_col,
-        "rows": result,
+        "rows": pretty_rows,
     }
 
 JUNK_KEYWORDS = [
@@ -217,6 +239,7 @@ def detect_order_column(df: pd.DataFrame) -> str | None:
     return None
 
 def get_total_sales(db: Session = Depends(get_db), identity: dict = Depends(get_identity), file_id: int | None = Query(None, description="Optional file ID")):
+
     user = identity.get("user")
     guest_id = identity.get("guest_id")
 
@@ -247,22 +270,42 @@ def get_total_sales(db: Session = Depends(get_db), identity: dict = Depends(get_
         if not target_file:
             return {"file_id": None, "total_sales": 0.0, "row_count": 0}
 
-    # Step 2: Get column mapping for "order" analysis
-    mapping_obj = (
+    # Step 2: Get both mappings (order & product)
+    order_mapping = (
         db.query(ColumnMapping)
         .filter(ColumnMapping.file_id == target_file.id, ColumnMapping.analysis_type == "order")
         .order_by(ColumnMapping.updated_at.desc())
         .first()
     )
-    if not mapping_obj or "orderId" not in mapping_obj.mapping:
+    product_mapping = (
+        db.query(ColumnMapping)
+        .filter(ColumnMapping.file_id == target_file.id, ColumnMapping.analysis_type == "product")
+        .order_by(ColumnMapping.updated_at.desc())
+        .first()
+    )
+
+    if not order_mapping or "orderId" not in order_mapping.mapping:
         return {"file_id": target_file.id, "total_sales": 0.0, "row_count": 0}
 
-    order_col = mapping_obj.mapping["orderId"]
-    amount_col = mapping_obj.mapping.get("totalAmount")
+    order_col = order_mapping.mapping["orderId"]
+
+    # Step 3: Determine how to calculate amount
+    amount_col = order_mapping.mapping.get("totalAmount")
+    use_product_calculation = False
+    price_col, qty_col = None, None
+
     if not amount_col:
+        # Check if product mapping exists and has both price and quantity
+        if product_mapping:
+            price_col = product_mapping.mapping.get("price")
+            qty_col = product_mapping.mapping.get("quantity")
+            if price_col and qty_col:
+                use_product_calculation = True
+
+    if not amount_col and not use_product_calculation:
         return {"file_id": target_file.id, "total_sales": 0.0, "row_count": 0}
 
-    # Step 3: Query FileRows for this file and user/guest
+    # Step 4: Query file rows
     query = db.query(FileRow).join(UploadedFile, FileRow.file_id == UploadedFile.id).filter(FileRow.file_id == target_file.id)
 
     if user:
@@ -270,19 +313,30 @@ def get_total_sales(db: Session = Depends(get_db), identity: dict = Depends(get_
     elif guest_id:
         query = query.filter(UploadedFile.guest_id == guest_id)
 
-    # Filter rows with valid orderId and non-empty amount
     query = query.filter(FileRow.data[order_col].astext.isnot(None))
     query = query.filter(FileRow.data[order_col].astext != "")
-    query = query.filter(FileRow.data[amount_col].astext.isnot(None))
-    query = query.filter(FileRow.data[amount_col].astext != "")
+
+    if amount_col:
+        query = query.filter(FileRow.data[amount_col].astext.isnot(None))
+        query = query.filter(FileRow.data[amount_col].astext != "")
 
     rows = query.all()
     row_count = len(rows)
     if row_count == 0:
         return {"file_id": target_file.id, "total_sales": 0.0, "row_count": 0}
 
-    # Step 4: Sum only the rows that have valid order IDs
-    total_sales = sum(float(r.data.get(amount_col) or 0.0) for r in rows)
+    # Step 5: Compute total sales
+    if use_product_calculation:
+        total_sales = 0.0
+        for r in rows:
+            try:
+                price = float(r.data.get(price_col) or 0.0)
+                qty = float(r.data.get(qty_col) or 0.0)
+                total_sales += price * qty
+            except (TypeError, ValueError):
+                continue
+    else:
+        total_sales = sum(float(r.data.get(amount_col) or 0.0) for r in rows)
 
     return {
         "file_id": target_file.id,

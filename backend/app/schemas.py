@@ -58,3 +58,14 @@ class FileResponse(BaseModel):
     uploadedAt: datetime | None = None
     size: int | None = None
     contentType: str | None = None
+
+class WhatsAppTemplateBase(BaseModel):
+    template_name: str
+    category: str | None = None
+    language: str
+    status: str
+    body: str | None = None
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
