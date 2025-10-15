@@ -108,3 +108,4 @@ class WhatsAppTemplate(Base):
     @property
     def variables(self) -> list[str]:
         return re.findall(r"{{.*?}}", self.body or "")
+

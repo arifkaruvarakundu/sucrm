@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
 import Table from '../table/Table'
 import api from '../../../api_config'
 import DatePicker from 'react-datepicker'
@@ -18,22 +17,20 @@ const OrderTable = () => {
   const fetchOrders = async () => {
     try {
       const params = {}
-  
       if (startDate) params.start_date = startDate.toISOString().split("T")[0]
       if (endDate) params.end_date = endDate.toISOString().split("T")[0]
-  
+
       const res = await api.get(`/order-analysis/orders-in-range`, { params })
       const data = res.data
-  
-      setOrders(data)
-      setFilteredOrders(data)
-  
-      if (data.length > 0) setColumns(Object.keys(data[0]))
+
+      // Use rows and columns from API
+      setOrders(data.rows || [])
+      setFilteredOrders(data.rows || [])
+      setColumns(data.columns || [])
     } catch (err) {
       console.error('Error fetching orders:', err)
     }
   }
-  
 
   useEffect(() => {
     if (startDate && endDate) fetchOrders()

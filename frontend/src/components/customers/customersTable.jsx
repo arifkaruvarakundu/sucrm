@@ -6,13 +6,16 @@ const CustomersTable = ({ customers = [], columns = [] }) => {
   const { t } = useTranslation("customerAnalysis");
 
   const hasCivilId = columns.includes("civil_id");
+  const hasCustomerId = columns.includes("customerId")
+  const shouldAddDobColumn = hasCivilId || hasCustomerId;
+
   const topCustomerHead = columns.length
-    ? [...columns, ...(hasCivilId ? ["dob"] : [])]
+    ? [...columns, ...(shouldAddDobColumn ? ["dob"] : [])]
     : ["customerName", "customerId", "phone", "city"]; // fallback
 
-  const parseDobFromCivilId = (civil) => {
-    if (!civil) return "";
-    const digits = String(civil).replace(/\D/g, "");
+  const parseDob = (civilOrCustomerId) => {
+    if (!civilOrCustomerId) return "";
+    const digits = String(civilOrCustomerId).replace(/\D/g, "");
     if (digits.length < 7) return "";
     const firstSeven = digits.slice(0, 7);
     const yy = firstSeven.slice(1, 3);
@@ -23,13 +26,28 @@ const CustomersTable = ({ customers = [], columns = [] }) => {
 
   const renderCustomerHead = (item, index) => <th key={index}>{t(item) || item}</th>;
 
-  const renderCustomerBody = (row, index) => (
-    <tr key={index} style={{ cursor: 'default' }}>
-      {topCustomerHead.map((col, i) => (
-        <td key={i}>{col === 'dob' ? parseDobFromCivilId(row?.civil_id) : (row[col] ?? '')}</td>
-      ))}
-    </tr>
-  );
+  // Render table body
+  const renderCustomerBody = (row, index) => {
+    const dobValue =
+      hasCivilId && row?.civil_id
+        ? parseDob(row.civil_id)
+        : hasCustomerId && /^\d{12}$/.test(row?.customerId)
+        ? parseDob(row.customerId)
+        : "";
+
+    return (
+      <tr key={index} style={{ cursor: 'default' }}>
+        {topCustomerHead.map((col, i) => (
+          <td key={i}>
+            {col === 'dob'
+              ? dobValue
+              : (row[col] ?? '')}
+          </td>
+        ))}
+      </tr>
+    );
+  };
+
 
   return (
     <div className="col-12">

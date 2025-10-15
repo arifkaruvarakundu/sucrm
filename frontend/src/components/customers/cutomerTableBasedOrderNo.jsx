@@ -133,7 +133,7 @@ const CustomerClassificationTables = () => {
   const renderBody = (item, index) => (
     <tr
       key={index}
-      onClick={() => navigate(`/customer-details/${item.customer_id}`)}
+      // onClick={() => navigate(`/customer-details/${item.customer_id}`)}
       style={{ cursor: "pointer" }}
     >
       {columns.map((col, i) => (

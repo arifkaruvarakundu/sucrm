@@ -1,6 +1,6 @@
 # app/schemas.py
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 class FileRowBase(BaseModel):
@@ -13,7 +13,6 @@ class FileRow(FileRowBase):
     id: int
     class Config:
         orm_mode = True
-
 
 class UploadedFileBase(BaseModel):
     filename: str
@@ -29,7 +28,6 @@ class UploadedFile(UploadedFileBase):
     rows: List[FileRow] = []
     class Config:
         orm_mode = True
-
 
 class UserBase(BaseModel):
     email: str
@@ -51,7 +49,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: str | None = None
 
-
 class FileResponse(BaseModel):
     id: int
     name: str
@@ -69,3 +66,13 @@ class WhatsAppTemplateBase(BaseModel):
 
     class Config:
         orm_mode = True
+
+# class SendMessageRequest(BaseModel):
+#     users: List[int]
+#     templates: List[str]
+#     variables: Optional[Dict[int, List[str]]] = None 
+
+class SendMessageRequest(BaseModel):
+    customers: Optional[List[int]]
+    templates: Optional[List[str]]
+    variables: Optional[Dict[int, List[str]]] = None

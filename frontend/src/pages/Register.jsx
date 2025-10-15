@@ -38,7 +38,8 @@ const Register = () => {
         form.lastName,
         form.email,
         form.password,
-        form.confirmPassword
+        form.confirmPassword,
+        "user"
       )
     );
   };

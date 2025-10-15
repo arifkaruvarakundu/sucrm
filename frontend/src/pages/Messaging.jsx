@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import CustomerList from "../components/customers/customersList";
 import TemplatesList from "../components/template_lists";
-
 import api from "../../api_config"
 
 function Messaging() {
@@ -72,10 +71,10 @@ function Messaging() {
           >
             Sync Templates
           </button>
-          {/* <TemplatesList
+          <TemplatesList
             selectedTemplates={selectedTemplates}
             onSelect={setSelectedTemplates}
-          /> */}
+          />
         </div>
         
         {/* Column 3: Selected Templates */}

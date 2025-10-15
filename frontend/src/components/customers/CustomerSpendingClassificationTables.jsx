@@ -18,29 +18,46 @@ const CustomerSpendingClassificationTables = () => {
   const { t } = useTranslation("customerAnalysis");
   const navigate = useNavigate();
 
-  const tableHead = ["customer_name", "total_orders", "total_spending", "churn_risk"];
+  const tableHead = ["customer_name", "phone", "total_orders", "total_spending", "last_order_date"]
 
   const renderHead = (item, index) => <th key={index}>{t(item)}</th>;
 
   const renderBody = (item, index, navigate) => (
-  <tr
-    key={index}
-    onClick={() => navigate(`/customer-details/${item.customer_id}`)}
-    style={{ cursor: "pointer" }}
-  >
-    <td>{item.customer_name}</td>
-    <td>{item.order_count}</td>
-    <td>{item.total_spending?.toFixed(2)}</td>
-    {/* <td>{item.churn_risk}</td> */}
-
-  </tr>
+    <tr
+      key={index}
+      // onClick={() => navigate(`/customer-details/${item.customer_id}`)}
+      style={{ cursor: "pointer" }}
+    >
+      <td>{item.customer_name}</td>
+      <td>{item.phone}</td>
+      <td>{item.order_count}</td>
+      <td>{item.total_spending?.toFixed(2)}</td>
+      <td>{item.last_order_date ? item.last_order_date.split('T')[0] : ''}</td>
+    </tr>
   );
 
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
         const res = await api.get(`/customer-analysis/full-customer-classification`);
-        const data = Array.isArray(res.data) ? res.data : [];
+
+        console.log("response from api for spending data:-->", res.data)
+        
+        const rawRows = Array.isArray(res.data.rows) ? res.data.rows : [];
+
+        // 🔄 Map backend fields to frontend naming
+        const data = rawRows.map((item, index) => ({
+          customer_id: item.id || index, // fallback if no ID
+          customer_name: item.customerName || "Unknown",
+          phone: item.phone || "N/A",
+          order_count: item.orderCount ?? 0,
+          total_spending: item.totalSpending ?? 0,
+          last_order_date: item.lastOrderDate || "-",
+          churn_risk: item.churnRisk || "N/A", // optional if not provided
+        }));
+
+        console.log("customer spending data: -->", data)
+
         setAllCustomers(data);
       } catch (error) {
         console.error("Failed to fetch spending classified customers:", error);

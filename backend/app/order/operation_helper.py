@@ -79,12 +79,14 @@
 
 #     return records_out
 
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import pandas as pd
 from app.dashboard.llm_helper import infer_order_fields_with_llm  # new LLM helper for orders
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.customer.db_helper import fetch_file_rows
+from app.models import UploadedFile, ColumnMapping, FileRow, FileColumn
+from sqlalchemy import or_
 
 def normalize_dataframe_column_names(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -146,30 +148,67 @@ def extract_orders_table_from_raw(df: pd.DataFrame) -> List[Dict[str, Any]]:
 
     return projected.where(pd.notnull(projected), None).to_dict(orient="records")
 
-
 def get_orders_in_range(
     db: Session,
     start_date: str,
     end_date: str,
+    identity: dict,
+    file_id: Optional[int] = None
 ) -> List[Dict[str, Any]]:
+    """
+    Return all orders in the given date range.
+    Uses stored column mappings (not LLM extraction).
+    """
 
-    """Return all orders in date range using LLM-based field extraction."""
-    rows = fetch_file_rows(db)
-    records: List[Dict[str, Any]] = [r.data for r in rows]
-    if not records:
+    # --- Step 1: Identify user or guest ---
+    user = identity.get("user")
+    user_id = getattr(user, "id", None) if user else None
+    guest_id = identity.get("guest_id")
+
+    # --- Step 2: Find file mappings ---
+    q = db.query(ColumnMapping).filter(ColumnMapping.analysis_type == "order")
+    if user_id:
+        q = q.filter(ColumnMapping.user_id == user_id)
+    elif guest_id:
+        q = q.filter(ColumnMapping.guest_id == guest_id)
+
+    if file_id:
+        q = q.filter(ColumnMapping.file_id == file_id)
+
+    mapping_obj = q.first()
+    if not mapping_obj or not mapping_obj.mapping:
         return []
 
+    mapping = mapping_obj.mapping  # e.g. {"orderId": "م", "orderDate": "التاريخ", ...}
+
+  
+    # --- Step 3: Fetch all rows for this file ---
+    rows_q = db.query(FileRow).filter(FileRow.file_id == mapping_obj.file_id)
+    rows = rows_q.all()
+    if not rows:
+        return []
+
+    records = [r.data for r in rows]
     df = pd.DataFrame(records)
-    orders = extract_orders_table_from_raw(df)
-    if not orders:
+
+    # --- Step 4: Apply field mapping safely ---
+    order_date_col = mapping.get("orderDate")
+    amount_col = mapping.get("totalAmount")
+    order_id_col = mapping.get("orderId")
+    customer_col = mapping.get("customerName")
+
+    if not order_date_col or order_date_col not in df.columns:
         return []
 
-    df_orders = pd.DataFrame(orders)
+    # --- Step 5: Normalize dataframe ---
+    df_orders = pd.DataFrame({
+        "order_id": df.get(order_id_col),
+        "customer_name": df.get(customer_col),
+        "date": df.get(order_date_col),
+        "amount": df.get(amount_col),
+    })
 
-    if "date" not in df_orders.columns:
-        return []
-    
-    # Parse dates
+    # --- Step 6: Convert and filter dates ---
     df_orders["date"] = pd.to_datetime(df_orders["date"], errors="coerce")
     df_orders = df_orders.dropna(subset=["date"])
 
@@ -179,16 +218,20 @@ def get_orders_in_range(
     except Exception:
         raise ValueError("Invalid date format. Use YYYY-MM-DD.")
 
-    # Filter range
-    mask = (df_orders["date"] >= start_dt) & (df_orders["date"] <= end_dt)
-    df_filtered = df_orders.loc[mask]
+    df_filtered = df_orders.loc[(df_orders["date"] >= start_dt) & (df_orders["date"] <= end_dt)]
 
     if df_filtered.empty:
         return []
 
-    # Format for JSON
-    df_filtered["date"] = df_filtered["date"].dt.strftime("%Y-%m-%d %H:%M:%S")
-    return df_filtered.where(pd.notnull(df_filtered), None).to_dict(orient="records")
+    # --- Step 7: Clean and prepare for JSON ---
+    df_filtered["date"] = df_filtered["date"].dt.strftime("%Y-%m-%d")
+    df_filtered = df_filtered.where(pd.notnull(df_filtered), None)
+
+    # Optional: reorder columns for readability
+    ordered_cols = ["order_id", "customer_name", "date", "amount"]
+    df_filtered = df_filtered[[c for c in ordered_cols if c in df_filtered.columns]]
+
+    return df_filtered.to_dict(orient="records")
 
 def get_orders_aggregated(
     db: Session,
@@ -196,63 +239,152 @@ def get_orders_aggregated(
     end_date: str,
     identity: dict,
     granularity: str = "daily",
-    file_id: int| None=None
-) -> List[Dict[str, Any]]:
-
+    file_id: int | None = None
+) -> dict:
     """
-    Return aggregated orders for charts, grouped by daily, monthly, or yearly.
-    Uses the same LLM-based extraction as `get_orders_in_range`.
+    Return aggregated orders (daily/monthly/yearly) using file_columns + column_mappings.
     """
 
-     # Step 1: Extract user/guest info from identity
-    user_id = identity.get("user_id")
+    user = identity.get("user")
     guest_id = identity.get("guest_id")
+    user_id = getattr(user, "id", None) if user else None
 
-    # Step 2: Fetch and normalize raw data
-    rows = fetch_file_rows(db, user_id=user_id, guest_id=guest_id, file_id=file_id)
-    records: List[Dict[str, Any]] = [r.data for r in rows]
-    if not records:
-        return []
+    if not user_id and not guest_id:
+        return {"file_id": None, "columns": [], "rows": []}
 
-    df = pd.DataFrame(records)
-    orders = extract_orders_table_from_raw(df)
-    if not orders:
-        return []
+    # Step 1: Resolve target file
+    if file_id:
+        target_file = db.query(UploadedFile).filter(UploadedFile.id == file_id).first()
+    else:
+        filters = []
+        if user_id:
+            filters.append(UploadedFile.user_id == user_id)
+        if guest_id:
+            filters.append(UploadedFile.guest_id == guest_id)
+        target_file = (
+            db.query(UploadedFile)
+            .filter(or_(*filters))
+            .order_by(UploadedFile.uploaded_at.desc())
+            .first()
+        )
 
-    df_orders = pd.DataFrame(orders)
-    if "date" not in df_orders.columns or "amount" not in df_orders.columns:
-        return []
+    if not target_file:
+        return {"file_id": None, "columns": [], "rows": []}
 
-    df_orders["date"] = pd.to_datetime(df_orders["date"], errors="coerce")
-    df_orders = df_orders.dropna(subset=["date"])
+    # Step 2: Fetch file columns + mapping
+    file_columns = db.query(FileColumn).filter(FileColumn.file_id == target_file.id).all()
+    order_mapping = (
+        db.query(ColumnMapping)
+        .filter(ColumnMapping.file_id == target_file.id, ColumnMapping.analysis_type == "order")
+        .order_by(ColumnMapping.updated_at.desc())
+        .first()
+    )
 
-    # Step 3: Filter by date range
+    if not file_columns or not order_mapping:
+        return {"file_id": target_file.id, "columns": ["period", "orderCount", "totalAmount"], "rows": []}
+
+    # Step 3: Build reverse mapping: actual column name → logical name
+    # Example: "التاريخ" -> "orderDate"
+    reverse_mapping = {}
+    mapping = order_mapping.mapping or {}
+    print ("mappings or product sample", mapping)
+
+    for logical_name, mapped_col in mapping.items():
+        for col in file_columns:
+            # Normalize both for comparison
+            col_name = str(col.name).strip()
+            if col_name == mapped_col.strip():
+                reverse_mapping[col_name] = logical_name
+                break
+
+    # Step 4: Load file rows
+    rows = db.query(FileRow).filter(FileRow.file_id == target_file.id).all()
+
+    print ("rows from file",rows)
+
+    if not rows:
+        return {"file_id": target_file.id, "columns": ["period", "orderCount", "totalAmount"], "rows": []}
+
+    df = pd.DataFrame([r.data for r in rows])
+
+    print("df data frame", df)
+
+    if df.empty:
+        return {"file_id": target_file.id, "columns": ["period", "orderCount", "totalAmount"], "rows": []}
+
+    df = df.where(pd.notnull(df), None)
+    print("second df", df)
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # Step 5: Rename columns using reverse mapping
+    df = df.rename(columns=reverse_mapping)
+
+    print("third df", df)
+
+    # Step 6: Identify columns
+    date_col = "orderDate" if "orderDate" in df.columns else None
+    # If totalAmount is missing, try computing it
+    lower_cols = [c.lower() for c in df.columns]
+
+    if "totalamount" not in lower_cols and "price" in lower_cols and "quantity" in lower_cols:
+        df["totalAmount"] = (
+            pd.to_numeric(df.loc[:, [c for c in df.columns if c.lower() == "price"][0]], errors="coerce").fillna(0)
+            * pd.to_numeric(df.loc[:, [c for c in df.columns if c.lower() == "quantity"][0]], errors="coerce").fillna(0)
+        )
+
+    amount_col = "totalAmount" if "totalAmount" in df.columns else None
+    order_id_col = "orderId" if "orderId" in df.columns else None
+    print("amount",amount_col)
+    print("date",date_col)
+    print("orde id",order_id_col)
+
+    if not all([date_col, amount_col]):
+        return {"file_id": target_file.id, "columns": ["period", "orderCount", "totalAmount"], "rows": []}
+
+    # Step 7: Convert + clean
+    df[amount_col] = pd.to_numeric(df[amount_col], errors="coerce").fillna(0)
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce").dt.tz_localize(None)
+    df = df.dropna(subset=[date_col])
+
+    print("fourth df:", df)
+
+    # Step 8: Filter by date range
     try:
         start_dt = pd.to_datetime(start_date)
         end_dt = pd.to_datetime(end_date)
     except Exception:
         raise ValueError("Invalid date format. Use YYYY-MM-DD.")
 
-    df_orders = df_orders.loc[(df_orders["date"] >= start_dt) & (df_orders["date"] <= end_dt)]
-    if df_orders.empty:
-        return []
+    df = df.loc[(df[date_col] >= start_dt) & (df[date_col] <= end_dt)]
 
-    # Step 4: Aggregate based on granularity
+    print("fifth df:", df)
+    if df.empty:
+        return {"file_id": target_file.id, "columns": ["period", "orderCount", "totalAmount"], "rows": []}
+
+    # Step 9: Aggregate
     if granularity == "daily":
-        df_orders["period"] = df_orders["date"].dt.strftime("%Y-%m-%d")
+        df["period"] = df[date_col].dt.strftime("%Y-%m-%d")
     elif granularity == "monthly":
-        df_orders["period"] = df_orders["date"].dt.strftime("%Y-%m")
+        df["period"] = df[date_col].dt.strftime("%Y-%m")
     elif granularity == "yearly":
-        df_orders["period"] = df_orders["date"].dt.strftime("%Y")
+        df["period"] = df[date_col].dt.strftime("%Y")
     else:
         raise ValueError("Granularity must be 'daily', 'monthly', or 'yearly'.")
 
-    df_agg = df_orders.groupby("period").agg(
-        order_count=pd.NamedAgg(column="order_id", aggfunc="count"),
-        total_amount=pd.NamedAgg(column="amount", aggfunc="sum")
-    ).reset_index()
+    df_agg = (
+        df.groupby("period")
+        .agg(orderCount=(order_id_col or amount_col, "count"), totalAmount=(amount_col, "sum"))
+        .reset_index()
+    )
 
-    # Step 5: Convert to JSON-friendly format
-    df_agg["total_amount"] = df_agg["total_amount"].astype(float)
-    result = df_agg.to_dict(orient="records")
-    return result
+    # Step 10: Final output
+    df_agg["totalAmount"] = df_agg["totalAmount"].astype(float)
+
+    return {
+
+        "file_id": target_file.id,
+        "columns": ["period", "orderCount", "totalAmount"],
+        "rows": df_agg.to_dict(orient="records"),
+
+    }
+
