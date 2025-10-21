@@ -32,4 +32,3 @@ const initialState = {
   }
   
   export default AuthReducer
-  

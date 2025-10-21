@@ -25,7 +25,6 @@ services:
       volumes:
         - pgdata:/var/lib/postgresql/data
 
-  
 # Define the volume here — this was missing
 volumes:
   pgdata:

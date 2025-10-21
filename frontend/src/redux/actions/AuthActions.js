@@ -11,9 +11,8 @@ export const login = (email, password) => async dispatch => {
     // Save token in localStorage
     localStorage.setItem("token", data.access_token);
     localStorage.setItem("email", data.email);
-    localStorage.setItem("user_type", data.user_type)
-   
-
+    localStorage.setItem("user_type", data.user_type);
+    
     dispatch({
       type: "AUTH_SUCCESS",
       payload: { token: data.access_token, email: data.email },
