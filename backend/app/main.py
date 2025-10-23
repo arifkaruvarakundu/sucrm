@@ -30,15 +30,15 @@ app = FastAPI(debug=True)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://api.sucrm.souqalsultan.com/register"
+    "https://sucrm.souqalsultan.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,            # or ["*"] if testing locally
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],              # allow all HTTP methods
-    allow_headers=["*"],              # allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.middleware("http")
