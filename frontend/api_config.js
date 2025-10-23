@@ -1,12 +1,6 @@
-// const API_BASE_URL = "http://localhost:8000";
-// const API_BASE_URL = "http://161.35.208.91";
-// const API_BASE_URL = "https://app.souqalsultan.com";
-
-// export default API_BASE_URL;
-
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "http://165.22.82.109";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
