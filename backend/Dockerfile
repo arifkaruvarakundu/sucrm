@@ -13,10 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5️⃣ Copy your FastAPI app code
 COPY app ./app
 
-# 6️⃣ Copy environment file
-COPY .env ./.env
-
-
 # 6️⃣ Expose FastAPI port
 EXPOSE 8000
 
