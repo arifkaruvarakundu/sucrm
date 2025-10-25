@@ -22,12 +22,12 @@ jobs:
       # 3️⃣ Stop any previous containers (safe even on first run)
       - name: Stop previous containers
         run: docker compose --env-file $GITHUB_WORKSPACE/sucrm/.env down
-        working-directory: $GITHUB_WORKSPACE/sucrm
+        working-directory: sucrm
 
       # 4️⃣ Build and start containers
       - name: Build and start containers
         run: docker compose --env-file $GITHUB_WORKSPACE/sucrm/.env up -d --build
-        working-directory: $GITHUB_WORKSPACE/sucrm
+        working-directory: sucrm
 
       # 5️⃣ Wait for backend to be healthy
       - name: Wait for backend
@@ -36,7 +36,7 @@ jobs:
           until docker compose --env-file $GITHUB_WORKSPACE/sucrm/.env exec backend curl -s http://localhost:8000/health >/dev/null 2>&1; do
             sleep 3
           done
-        working-directory: $GITHUB_WORKSPACE/sucrm
+        working-directory: sucrm
 
       # 6️⃣ Run backend tests
       - name: Run backend tests
