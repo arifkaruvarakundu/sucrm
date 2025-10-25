@@ -10,34 +10,29 @@ jobs:
 
     steps:
 
-      # 0️⃣ Remove Python cache safely
-      - name: Remove Python cache
-        run: |
-          find /home/harif/actions-runner/_work/sucrm -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+      # 0️⃣ Clean previous repo to avoid permission issues
+      - name: Clean previous repo
+        run: rm -rf /home/harif/actions-runner/_work/sucrm/sucrm || true
 
-      # 1️⃣ Fix permissions safely
-      - name: Fix permissions (ignore errors)
-        run: chown -R harif:harif /home/harif/actions-runner/_work/sucrm 2>/dev/null || true
-
-      # 2️⃣ Checkout repository
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 3️⃣ Ensure Docker is available
+      # 2️⃣ Ensure Docker is available
       - name: Check Docker
         run: |
           docker --version
           docker compose version
 
-      # 4️⃣ Stop any previous containers
+      # 3️⃣ Stop any previous containers
       - name: Stop previous containers
         run: docker compose --env-file /home/env/sucrm.env down
 
-      # 5️⃣ Build and start containers
+      # 4️⃣ Build and start containers
       - name: Build and start containers
         run: docker compose --env-file /home/env/sucrm.env up -d --build
 
-      # 6️⃣ Wait for backend to be healthy
+      # 5️⃣ Wait for backend to be healthy
       - name: Wait for backend
         run: |
           timeout=60
@@ -52,6 +47,6 @@ jobs:
             fi
           done
 
-      # 7️⃣ Run backend tests
+      # 6️⃣ Run backend tests
       - name: Run backend tests
         run: docker compose --env-file /home/env/sucrm.env run --rm backend pytest app/tests
