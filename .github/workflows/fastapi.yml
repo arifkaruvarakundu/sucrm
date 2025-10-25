@@ -37,7 +37,7 @@ jobs:
           until docker compose --env-file /home/env/sucrm.env exec backend curl -s http://localhost:8000/health >/dev/null 2>&1; do
             sleep 3
           done
-
+          
       # 6️⃣ Run backend tests
       - name: Run backend tests
         run: docker compose --env-file /home/env/sucrm.env exec backend pytest app/tests
