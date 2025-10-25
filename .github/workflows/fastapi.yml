@@ -29,14 +29,6 @@ jobs:
         export PG_PASSWORD=harif313
         # Add any other env vars here if needed
 
-    # 6️⃣ Bring down any existing containers
-    - name: Stop previous containers
-      run: docker compose down
-
-    # 7️⃣ Build and start Docker containers
-    - name: Build and start containers
-      run: docker compose up -d --build
-
     # 8️⃣ Wait for backend to be ready
     - name: Wait for backend
       run: |
