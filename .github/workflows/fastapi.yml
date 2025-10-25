@@ -11,7 +11,7 @@ jobs:
     steps:
     
       - name: Fix permissions
-        run: sudo chown -R harif:harif /home/harif/actions-runner/_work/sucrm
+        run: chown -R harif:harif /home/harif/actions-runner/_work/sucrm
         
       # 1️⃣ Checkout repository
       - name: Checkout repository
