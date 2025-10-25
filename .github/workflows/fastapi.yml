@@ -9,6 +9,10 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
+    
+      - name: Fix permissions
+        run: sudo chown -R harif:harif /home/harif/actions-runner/_work/sucrm
+        
       # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
