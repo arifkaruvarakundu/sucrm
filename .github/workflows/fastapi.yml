@@ -51,4 +51,5 @@ jobs:
           
       # 6️⃣ Run backend tests
       - name: Run backend tests
-        run: docker compose --env-file /home/env/sucrm.env exec backend pytest app/tests
+        run: docker compose --env-file /home/env/sucrm.env run --rm backend pytest app/tests
+
