@@ -23,3 +23,7 @@ EXPOSE 8000
 # 7️⃣ Run FastAPI app
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--workers", "3", "--bind", "0.0.0.0:8000", "app.main:app"]
 
+# nginx/Dockerfile
+FROM nginx:stable-alpine
+COPY ./sucrm_nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

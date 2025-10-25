@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   backend:
     build: ./backend
@@ -9,11 +7,11 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - ./backend/.env
+      - ./.env
     # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     command: gunicorn -k uvicorn.workers.UvicornWorker --workers 3 --bind 0.0.0.0:8000 app.main:app
     restart: always
-    
+
   db:
       image: postgres:16
       container_name: sucrm-db
@@ -26,6 +24,18 @@ services:
         - "5432:5432"
       volumes:
         - pgdata:/var/lib/postgresql/data
+
+  nginx:
+    build: ./nginx
+    container_name: sucrm-nginx
+    ports:
+      - "80:80"
+      - "443:443"    # expose HTTPS
+    depends_on:
+      - backend
+    restart: always
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro  # mount certs into container
 
 # Define the volume here — this was missing
 volumes:
