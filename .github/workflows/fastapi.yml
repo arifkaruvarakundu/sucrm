@@ -1,11 +1,11 @@
-name: fastapi CI
+name: fastapi CI/CD
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: [self-hosted]
 
     steps:
@@ -13,32 +13,44 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2️⃣ Fix permissions (important for self-hosted runners)
+    # 2️⃣ Fix workspace permissions
     - name: Fix workspace permissions
       run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE
 
-    # 3️⃣ Remove old Python cache files
-    - name: Clean Python cache
-      run: sudo rm -rf backend/app/**/__pycache__
-
-    # 4️⃣ Setup Python
-    - name: Setup Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-
-    # 5️⃣ Install dependencies
-    - name: Install dependencies
+    # 3️⃣ Ensure Docker is running
+    - name: Check Docker
       run: |
-        python -m venv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install -r backend/requirements.txt
+        docker --version
+        docker compose version
 
-    # 6️⃣ Optional: Run tests
-    - name: Run tests
+    # 4️⃣ Export environment variables for Docker Compose
+    - name: Set environment variables
       run: |
-        source venv/bin/activate
-        pytest backend/tests
+        export PG_PASSWORD=harif313
+        # Add any other env vars here if needed
+
+    # 5️⃣ Bring down any existing containers
+    - name: Stop previous containers
+      run: docker compose down
+
+    # 6️⃣ Build and start Docker containers
+    - name: Build and start containers
+      run: docker compose up -d --build
+
+    # 7️⃣ Wait for services to be healthy
+    - name: Wait for backend
+      run: |
+        echo "Waiting for backend to be ready..."
+        until docker compose exec backend curl -s http://localhost:8000/health; do
+          sleep 3
+        done
+
+    # 8️⃣ Optional: Run tests inside the backend container
+    - name: Run backend tests
+      run: docker compose exec backend pytest app/tests
+
+    # 9️⃣ Optional: Tear down after tests (optional for CI)
+    # - name: Stop containers
+    #   run: docker compose down
 
     
