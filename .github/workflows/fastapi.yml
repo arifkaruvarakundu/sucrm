@@ -9,7 +9,7 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-      # 1️⃣ Checkout the repository
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -19,29 +19,15 @@ jobs:
           docker --version
           docker compose version
 
-      # 3️⃣ Set environment variables from GitHub Secrets
-      - name: Export env variables
-        run: |
-          echo "PG_PASSWORD=${{ secrets.PG_PASSWORD }}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
-          echo "CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}" >> $GITHUB_ENV
-          echo "CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}" >> $GITHUB_ENV
-          echo "CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}" >> $GITHUB_ENV
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-          echo "WHATSAPP_ACCESS_TOKEN=${{ secrets.WHATSAPP_ACCESS_TOKEN }}" >> $GITHUB_ENV
-          echo "WHATSAPP_PHONE_NUMBER_ID=${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}" >> $GITHUB_ENV
-          echo "WABA_ID=${{ secrets.WABA_ID }}" >> $GITHUB_ENV
-
-      # 4️⃣ Bring down any previous containers
+      # 3️⃣ Bring down any previous containers
       - name: Stop previous containers
         run: docker compose down
 
-      # 5️⃣ Build and start containers
+      # 4️⃣ Build and start containers
       - name: Build and start containers
         run: docker compose up -d --build
 
-      # 6️⃣ Wait for backend to be healthy
+      # 5️⃣ Wait for backend to be healthy
       - name: Wait for backend
         run: |
           echo "Waiting for backend to be ready..."
@@ -49,6 +35,6 @@ jobs:
             sleep 3
           done
 
-      # 7️⃣ Run backend tests
+      # 6️⃣ Run backend tests
       - name: Run backend tests
         run: docker compose exec backend pytest app/tests
