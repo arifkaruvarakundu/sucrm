@@ -9,27 +9,34 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-    # 2️⃣ Checkout code
+    # 1️⃣ Checkout code
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 3️⃣ Clean up any lingering __pycache__ files
+    # 2️⃣ Clean pycache (optional if gitignore exists)
     - name: Remove old pycache
       run: find $GITHUB_WORKSPACE -name "__pycache__" -type d -exec rm -rf {} +
 
-    # 4️⃣ Ensure Docker is running
+    # 3️⃣ Ensure Docker is running
     - name: Check Docker
       run: |
         docker --version
         docker compose version
 
-    # 5️⃣ Export environment variables for Docker Compose
+    # 4️⃣ Export environment variables
     - name: Set environment variables
       run: |
         export PG_PASSWORD=harif313
-        # Add any other env vars here if needed
 
-    # 8️⃣ Wait for backend to be ready
+    # 5️⃣ Bring down any previous containers
+    - name: Stop previous containers
+      run: docker compose down
+
+    # 6️⃣ Build and start containers
+    - name: Build and start containers
+      run: docker compose up -d --build
+
+    # 7️⃣ Wait for backend to be ready
     - name: Wait for backend
       run: |
         echo "Waiting for backend to be ready..."
@@ -37,6 +44,6 @@ jobs:
           sleep 3
         done
 
-    # 9️⃣ Optional: Run backend tests
+    # 8️⃣ Run backend tests
     - name: Run backend tests
       run: docker compose exec backend pytest app/tests
