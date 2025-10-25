@@ -15,7 +15,8 @@ jobs:
 
     # 2️⃣ Clean pycache (optional if gitignore exists)
     - name: Remove old pycache
-      run: find $GITHUB_WORKSPACE -name "__pycache__" -type d -exec rm -rf {} +
+      run: |
+        find $GITHUB_WORKSPACE -name "__pycache__" -type d -exec rm -rf {} + || true
 
     # 3️⃣ Ensure Docker is running
     - name: Check Docker
