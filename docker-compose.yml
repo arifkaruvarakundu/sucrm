@@ -27,18 +27,6 @@ services:
       volumes:
         - pgdata:/var/lib/postgresql/data
 
-  nginx:
-    build: ./nginx
-    container_name: sucrm-nginx
-    ports:
-      - "80:80"
-      - "443:443"    # expose HTTPS
-    depends_on:
-      - backend
-    restart: always
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro  # mount certs into container
-
 # Define the volume here — this was missing
 volumes:
   pgdata:
