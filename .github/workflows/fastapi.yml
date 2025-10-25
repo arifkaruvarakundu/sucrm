@@ -7,11 +7,38 @@ on:
 jobs:
   build:
     runs-on: [self-hosted]
+
     steps:
-    - uses: actions/checkout@v4
-    - name: install dependencies
+    # 1️⃣ Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2️⃣ Fix permissions (important for self-hosted runners)
+    - name: Fix workspace permissions
+      run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE
+
+    # 3️⃣ Remove old Python cache files
+    - name: Clean Python cache
+      run: sudo rm -rf backend/app/**/__pycache__
+
+    # 4️⃣ Setup Python
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    # 5️⃣ Install dependencies
+    - name: Install dependencies
       run: |
-        python3 -m venv venv
+        python -m venv venv
         source venv/bin/activate
+        pip install --upgrade pip
         pip install -r backend/requirements.txt
+
+    # 6️⃣ Optional: Run tests
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        pytest backend/tests
+
     
