@@ -7,7 +7,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - ./.env
+      - /home/env/sucrm.env
     # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     command: gunicorn -k uvicorn.workers.UvicornWorker --workers 3 --bind 0.0.0.0:8000 app.main:app
     restart: always
@@ -16,6 +16,8 @@ services:
       image: postgres:16
       container_name: sucrm-db
       restart: always
+      env_file:
+      - /home/env/sucrm.env
       environment:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: ${PG_PASSWORD}
