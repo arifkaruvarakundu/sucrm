@@ -19,7 +19,7 @@ services:
       env_file:
       - /home/env/sucrm.env
       environment:
-        POSTGRES_USER: postgres
+        POSTGRES_USER: harif
         POSTGRES_PASSWORD: ${PG_PASSWORD}
         POSTGRES_DB: sucrm
       ports:
