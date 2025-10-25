@@ -10,10 +10,6 @@ jobs:
 
     steps:
 
-      # 0️⃣ Clean previous repo to avoid permission issues
-      - name: Clean previous repo
-        run: rm -rf /home/harif/actions-runner/_work/sucrm/sucrm || true
-
       # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,9 +20,12 @@ jobs:
           docker --version
           docker compose version
 
-      # 3️⃣ Stop any previous containers
+      # 3️⃣ Stop any previous containers safely
       - name: Stop previous containers
-        run: docker compose --env-file /home/env/sucrm.env down
+        run: |
+          if [ -f docker-compose.yml ]; then
+            docker compose --env-file /home/env/sucrm.env down || true
+          fi
 
       # 4️⃣ Build and start containers
       - name: Build and start containers
