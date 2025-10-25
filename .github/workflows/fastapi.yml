@@ -9,35 +9,39 @@ jobs:
     runs-on: [self-hosted]
 
     steps:
-    # 1️⃣ Checkout code
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    # 2️⃣ Fix workspace permissions
+    # 1️⃣ Fix workspace permissions before checkout
     - name: Fix workspace permissions
       run: sudo chown -R $USER:$USER $GITHUB_WORKSPACE
 
-    # 3️⃣ Ensure Docker is running
+    # 2️⃣ Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 3️⃣ Clean up any lingering __pycache__ files
+    - name: Remove old pycache
+      run: find $GITHUB_WORKSPACE -name "__pycache__" -type d -exec rm -rf {} +
+
+    # 4️⃣ Ensure Docker is running
     - name: Check Docker
       run: |
         docker --version
         docker compose version
 
-    # 4️⃣ Export environment variables for Docker Compose
+    # 5️⃣ Export environment variables for Docker Compose
     - name: Set environment variables
       run: |
         export PG_PASSWORD=harif313
         # Add any other env vars here if needed
 
-    # 5️⃣ Bring down any existing containers
+    # 6️⃣ Bring down any existing containers
     - name: Stop previous containers
       run: docker compose down
 
-    # 6️⃣ Build and start Docker containers
+    # 7️⃣ Build and start Docker containers
     - name: Build and start containers
       run: docker compose up -d --build
 
-    # 7️⃣ Wait for services to be healthy
+    # 8️⃣ Wait for backend to be ready
     - name: Wait for backend
       run: |
         echo "Waiting for backend to be ready..."
@@ -45,12 +49,6 @@ jobs:
           sleep 3
         done
 
-    # 8️⃣ Optional: Run tests inside the backend container
+    # 9️⃣ Optional: Run backend tests
     - name: Run backend tests
       run: docker compose exec backend pytest app/tests
-
-    # 9️⃣ Optional: Tear down after tests (optional for CI)
-    # - name: Stop containers
-    #   run: docker compose down
-
-    
