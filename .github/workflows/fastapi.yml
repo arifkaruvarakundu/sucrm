@@ -1,17 +1,39 @@
-name: fastapi CI
+name: FastAPI CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: [self-hosted]
+
     steps:
-    - uses: actions/checkout@v4
-    - name: install dependencies
-      run: |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r backend/requirements.txt
-    
+      # 1️⃣ Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Ensure Docker is available
+      - name: Check Docker
+        run: |
+          docker --version
+          docker compose version
+
+      # 3️⃣ Stop any previous containers
+      - name: Stop previous containers
+        run: docker compose --env-file /home/env/sucrm.env down
+
+      # 4️⃣ Build and start containers
+      - name: Build and start containers
+        run: docker compose --env-file /home/env/sucrm.env up -d --build
+
+      # 5️⃣ Wait for backend to be healthy
+      - name: Wait for backend
+        run: |
+          until docker compose --env-file /home/env/sucrm.env exec backend curl -s http://localhost:8000/health >/dev/null 2>&1; do
+            sleep 3
+          done
+
+      # 6️⃣ Run backend tests
+      - name: Run backend tests
+        run: docker compose --env-file /home/env/sucrm.env exec backend pytest app/tests
